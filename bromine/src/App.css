@@ -1,28 +1,29 @@
 /* =========================================
-   1. VARIABLES & RESET
+   1. VARIABLES & RESET (DARK MODE THEME)
    ========================================= */
 :root {
-  /* Core Palette */
-  --bg-app: #ffffff;
-  --bg-sidebar: #f7f7f5;
-  --bg-card: #ffffff;
+  /* Core Palette - Dark Mode */
+  --bg-app: #09090b; /* Deepest Black/Blue */
+  --bg-sidebar: #121214; 
+  --bg-card: #1c1c1e; /* Apple Dark Grey */
   
   /* Text Colors */
-  --text-primary: #191711;
-  --text-secondary: #787774;
-  --text-tertiary: #9b9a97;
+  --text-primary: #ffffff;
+  --text-secondary: #8a8a8e;
+  --text-tertiary: #636366;
   
   /* Accents */
-  --accent-blue: #007aff;
-  --hover-item: rgba(55, 53, 47, 0.08);
-  --border-subtle: rgba(55, 53, 47, 0.09);
+  --accent-blue: #0a84ff;
+  --btn-white: #ffffff;
+  --btn-text-dark: #000000;
   
-  /* Shadows */
-  --shadow-card: 0px 1px 0px rgba(55, 53, 47, 0.05), 0px 2px 8px rgba(55, 53, 47, 0.05);
-  --shadow-float: 0px 10px 30px rgba(0, 0, 0, 0.08);
-
+  /* Borders & Shadows */
+  --border-subtle: rgba(255, 255, 255, 0.1);
+  --shadow-card: 0 10px 40px -10px rgba(0,0,0,0.5);
+  --shadow-float: 0 10px 30px rgba(0,0,0,0.5);
+  
   /* Typography */
-  --font-stack: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, "Apple Color Emoji", Arial, sans-serif;
+  --font-stack: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
 * { box-sizing: border-box; }
@@ -33,29 +34,50 @@ body {
   color: var(--text-primary);
   background-color: var(--bg-app);
   -webkit-font-smoothing: antialiased;
+  overflow-x: hidden; /* Prevent horizontal scroll from effects */
 }
 
 /* =========================================
-   2. MAIN LAYOUT & SIDEBAR
+   2. BACKGROUND LEAK EFFECT
+   ========================================= */
+/* This creates the colorful glow at the top */
+body::before {
+  content: "";
+  position: fixed;
+  top: -15%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 140%;
+  height: 60vh;
+  background: radial-gradient(
+    circle at center, 
+    rgba(255, 100, 100, 0.12) 0%, 
+    rgba(100, 100, 255, 0.12) 30%, 
+    rgba(0, 0, 0, 0) 70%
+  );
+  filter: blur(80px);
+  z-index: -1;
+  pointer-events: none;
+}
+
+/* =========================================
+   3. MAIN LAYOUT & SIDEBAR
    ========================================= */
 .app-layout {
   display: flex;
   height: 100vh;
   width: 100vw;
   overflow: hidden;
-  position: relative; /* Context for mobile positioning */
+  position: relative;
 }
 
-/* --- SIDEBAR STYLING --- */
+/* Sidebar Dark Styling */
 .sidebar {
-  width: 240px;
+  width: 260px;
   background: var(--bg-sidebar);
   border-right: 1px solid var(--border-subtle);
-  padding: 12px 8px;
-  
-  /* FIX 1: PUSH CONTENT DOWN SO BUTTON DOESN'T COVER TEXT */
-  padding-top: 50px; 
-  
+  padding: 12px 10px;
+  padding-top: 60px; /* Space for toggle button */
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
@@ -66,22 +88,22 @@ body {
   white-space: nowrap;
 }
 
-/* The Collapsed State */
 .sidebar.collapsed {
   width: 0;
   padding: 12px 0; 
-  padding-top: 50px; /* Keep the top spacing consistent */
+  padding-top: 60px;
   border-right: none;
 }
 
 /* Brand / Title */
 .brand h2 {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
-  color: var(--text-secondary);
+  color: var(--text-tertiary);
   padding: 0 12px;
-  margin: 0 0 12px 0; /* Removed top margin since we used padding-top on parent */
+  margin: 0 0 16px 0;
   text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 /* Menu Items */
@@ -90,38 +112,47 @@ body {
   border: none;
   width: 100%;
   text-align: left;
-  padding: 6px 12px;
-  margin-bottom: 2px;
-  border-radius: 4px;
+  padding: 10px 14px;
+  margin-bottom: 4px;
+  border-radius: 8px;
   cursor: pointer;
-  color: var(--text-primary);
-  font-size: 14px;
+  color: var(--text-secondary);
+  font-size: 15px;
   font-weight: 500;
   display: flex;
   align-items: center;
-  gap: 10px;
-  transition: background 0.1s ease;
+  gap: 12px;
+  transition: all 0.2s ease;
 }
 
-.menu-item:hover { background: var(--hover-item); }
-.menu-item.active { background: var(--hover-item); color: var(--text-primary); }
+.menu-item:hover { 
+  background: rgba(255,255,255,0.08); 
+  color: var(--text-primary);
+}
+.menu-item.active { 
+  background: rgba(255,255,255,0.12); 
+  color: var(--text-primary); 
+}
 
-/* --- TOGGLE BUTTON --- */
+/* Toggle Button */
 .sidebar-toggle-btn {
   position: absolute;
   top: 15px;
   left: 15px;
-  z-index: 2000; /* Ensure it is ALWAYS on top */
+  z-index: 2000;
   background: transparent;
   border: none;
   cursor: pointer;
   font-size: 20px;
   color: var(--text-secondary);
-  padding: 4px;
-  border-radius: 4px;
-  transition: color 0.2s;
+  padding: 6px;
+  border-radius: 6px;
+  transition: color 0.2s, background 0.2s;
 }
-.sidebar-toggle-btn:hover { color: var(--text-primary); background: rgba(0,0,0,0.05); }
+.sidebar-toggle-btn:hover { 
+  color: var(--text-primary); 
+  background: rgba(255,255,255,0.1); 
+}
 
 /* Main Content Area */
 .main-content {
@@ -129,289 +160,275 @@ body {
   overflow-y: auto;
   position: relative;
   scrollbar-width: thin;
-  /* Add padding top to prevent content hidden behind button on mobile */
+  scrollbar-color: rgba(255,255,255,0.2) transparent;
   padding-top: 0; 
 }
 
 /* =========================================
-   3. RESPONSIVE / MOBILE STYLES (NEW)
+   4. DASHBOARD (HOME PAGE) REDESIGN
    ========================================= */
-
-/* Mobile & Tablet (Max width 768px) */
-@media (max-width: 768px) {
-  
-  /* Make Sidebar Overlay the content instead of pushing it */
-  .sidebar {
-    position: absolute;
-    height: 100%;
-    z-index: 1000;
-    box-shadow: 2px 0 10px rgba(0,0,0,0.1);
-  }
-  
-  /* When collapsed on mobile, width is 0 */
-  .sidebar.collapsed {
-    width: 0;
-    padding: 0; /* Fully hide padding to avoid artifacts */
-  }
-
-  /* Adjust Main Content to be full width */
-  .main-content {
-    width: 100%;
-  }
-
-  /* Ensure the toggle button is always visible on the white background */
-  .sidebar-toggle-btn {
-    left: 10px;
-    top: 10px;
-    background: rgba(255,255,255,0.8); /* Add background so it pops over content */
-    backdrop-filter: blur(4px);
-  }
-
-  /* Adjust Dashboard Padding for small screens */
-  .dashboard {
-    padding: 60px 20px; /* Less padding on sides */
-  }
-  
-  .editor-container {
-    padding: 60px 20px 100px 20px;
-  }
+.dashboard {
+  padding: 60px 40px;
+  max-width: 1400px;
+  margin: 0 auto;
 }
 
-/* =========================================
-   4. DASHBOARD & GRID (UPDATED PREVIEW)
-   ========================================= */
-.dashboard { padding: 60px 80px; max-width: 1200px; margin: 0 auto; }
-
-/* ... existing header styles ... */
+/* Header Section */
 .dashboard-header {
   display: flex;
-  justify-content: space-between;
-  align-items: center; /* Center vertically */
-  margin-bottom: 40px;
-  border-bottom: 1px solid var(--border-subtle);
-  padding-bottom: 20px;
+  flex-direction: column; /* Stack Title and Button */
+  align-items: flex-start;
+  gap: 24px;
+  margin-bottom: 50px;
+  border-bottom: none;
+  padding-bottom: 0;
 }
 
 .dashboard-header h1 {
-  font-size: 32px;
-  font-weight: 700;
+  font-size: 42px;
+  font-weight: 800;
   margin: 0;
-  letter-spacing: -0.5px;
-  color: var(--text-primary);
+  letter-spacing: -1px;
+  /* Text Gradient */
+  background: linear-gradient(180deg, #fff 0%, #ccc 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
-/* Grid Layout */
-.note-grid { 
-  display: grid; 
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); 
-  gap: 24px; 
-}
-
-/* The Card Container */
-.note-card { 
-  background: var(--bg-card); 
-  border: 1px solid var(--border-subtle); 
-  border-radius: 12px; /* Slightly rounder */
-  height: 200px; /* Fixed height */
-  display: flex; 
-  flex-direction: column; 
-  cursor: pointer; 
-  transition: box-shadow 0.2s ease, transform 0.2s ease; 
-  overflow: hidden; /* Ensures image doesn't spill out */
-  position: relative;
-}
-
-.note-card:hover { 
-  box-shadow: 0 8px 20px rgba(0,0,0,0.08); 
-  transform: translateY(-2px);
-  border-color: rgba(0,0,0,0.15); 
-}
-
-/* 1. TOP HALF: Cover Image Area */
-.note-card-cover {
-  height: 45%; /* Takes top 45% of card */
-  width: 100%;
-  background-color: #f0f0f0; /* Fallback grey */
-  background-size: cover;
-  background-position: center;
-  border-bottom: 1px solid rgba(0,0,0,0.05);
-}
-
-/* 2. BOTTOM HALF: Text Content Area */
-.note-card-content {
-  padding: 12px 16px;
-  display: flex;
-  flex-direction: column;
-  flex: 1; /* Takes remaining space */
-  background: white;
-}
-
-.note-card h3 { 
-  margin: 0 0 6px 0; 
-  font-size: 16px; 
-  font-weight: 600; 
-  color: var(--text-primary);
-  white-space: nowrap; 
-  overflow: hidden; 
-  text-overflow: ellipsis; 
-}
-
-.note-card-preview { 
-  font-size: 13px; 
-  color: var(--text-secondary); 
-  flex-grow: 1; 
-  overflow: hidden; 
-  line-height: 1.4;
-  /* Fade out text at the bottom */
-  mask-image: linear-gradient(180deg, #000 60%, transparent); 
-  -webkit-mask-image: linear-gradient(180deg, #000 60%, transparent);
-}
-
-.note-card-footer { 
-  margin-top: 8px; 
-  font-size: 11px; 
-  color: var(--text-tertiary); 
-  font-weight: 500; 
-}
-/* =========================================
-   5. EDITOR STYLES
-   ========================================= */
-.editor-container { max-width: 900px; margin: 0 auto; padding: 60px 80px 120px 80px; animation: fadeIn 0.3s ease-in-out; }
-@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-
-.editor-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px; }
-.secondary-btn { background: transparent; border: none; color: var(--text-secondary); cursor: pointer; font-size: 14px; font-weight: 500; padding: 6px 10px; border-radius: 4px; }
-.secondary-btn:hover { background: var(--hover-item); color: var(--text-primary); }
-
-.title-input { width: 100%; font-size: 42px; font-weight: 700; border: none; outline: none; margin-bottom: 24px; color: var(--text-primary); background: transparent; padding: 0; line-height: 1.2; }
-.title-input::placeholder { color: rgba(0, 0, 0, 0.15); }
-
-/* TIPTAP */
-.tiptap-editor { min-height: 60vh; }
-.ProseMirror { font-size: 17px; line-height: 1.7; color: #37352f; outline: none; }
-.ProseMirror p.is-editor-empty:first-child::before { color: rgba(0,0,0,0.2); content: attr(data-placeholder); float: left; height: 0; pointer-events: none; }
-.ProseMirror h1 { font-size: 2.2em; font-weight: 700; margin-top: 1.5em; }
-.ProseMirror h2 { font-size: 1.7em; font-weight: 600; margin-top: 1.3em; border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.3em; }
-.ProseMirror pre { background: #f7f7f5; color: #EB5757; padding: 1rem 1.5rem; border-radius: 8px; font-family: monospace; font-size: 14px; margin: 1.5rem 0; }
-.ProseMirror table { border: 1px solid var(--border-subtle); border-radius: 6px; overflow: hidden; }
-.ProseMirror th { background-color: #fafafa; font-weight: 600; color: var(--text-secondary); }
-
-/* Context/Slash Menus */
-.context-menu, .slash-menu { background: white; border: 1px solid rgba(0,0,0,0.08); box-shadow: var(--shadow-float); border-radius: 8px; padding: 6px; animation: popIn 0.1s ease-out; }
-.context-menu-item, .slash-item { border-radius: 4px; font-size: 13px; font-weight: 500; color: var(--text-primary); padding: 8px 10px; cursor: pointer; }
-.context-menu-item:hover, .slash-item:hover, .slash-item.is-selected { background-color: var(--accent-blue); color: white; }
-.context-menu-item.delete { color: #FF3B30; } 
-.context-menu-item.delete:hover { background-color: #FF3B30; color: white; }
-
-/* =========================================
-   6. PAGE COVERS & PICKER (FIXED)
-   ========================================= */
-.cover-image-container {
-  width: 100%;
-  height: 220px;
-  background-color: #f7f7f5;
-  position: relative;
-  overflow: visible !important; 
-  display: none;
-  border-radius: 8px 8px 0 0;
-}
-
-.cover-image-container.visible { display: block; }
-
-.cover-image { 
-  width: 100%; 
-  height: 100%; 
-  object-fit: cover; 
-  object-position: center 50%;
-  border-radius: 8px 8px 0 0; 
-}
-
-/* Controls Area */
-.cover-controls {
-  position: absolute; 
-  bottom: 10px; 
-  right: 20px;
-  z-index: 10; 
-  opacity: 0; 
-  transition: opacity 0.2s;
-  background: rgba(255,255,255,0.95); 
-  padding: 4px; 
-  border-radius: 6px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-  display: flex; 
-  gap: 8px;
-}
-.cover-image-container:hover .cover-controls { opacity: 1; }
-
-.cover-btn {
-  border: none; background: transparent; cursor: pointer; font-size: 12px;
-  padding: 4px 8px; border-radius: 4px; color: var(--text-secondary); font-weight: 500;
-  white-space: nowrap;
-}
-.cover-btn:hover { background: rgba(0,0,0,0.05); color: var(--text-primary); }
-.remove-btn:hover { color: #FF3B30; background: rgba(255,59,48,0.1); }
-
-/* The Cover Picker Popup */
-.cover-picker-menu {
-  position: absolute;
-  top: 100%; 
-  right: 0; 
+/* Subtitle under "My Workspace" */
+.dashboard-header h1::after {
+  content: "Your notes, ideas & thoughts";
+  display: block;
+  font-size: 17px;
+  font-weight: 400;
+  color: var(--text-secondary);
   margin-top: 8px;
-  background: white;
-  border: 1px solid rgba(0,0,0,0.1);
-  box-shadow: 0 10px 30px rgba(0,0,0,0.15);
-  border-radius: 8px;
-  padding: 12px;
-  width: 320px;
-  z-index: 1000; 
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
+  -webkit-text-fill-color: var(--text-secondary); /* Reset fill */
+  letter-spacing: 0;
 }
 
-.cover-option {
-  width: 100%; height: 40px;
-  border-radius: 4px;
-  cursor: pointer;
-  border: 2px solid transparent;
-  transition: transform 0.1s;
-  object-fit: cover;
-  background-color: #eee;
-}
-.cover-option:hover { transform: scale(1.05); border-color: var(--accent-blue); }
+/* Modern "New Note" Button (White Pill) */
 .new-note-btn {
-  background-color: #191919; /* Deep matte black */
-  color: #ffffff;
-  border: 1px solid transparent;
-  padding: 10px 18px;
-  border-radius: 8px; /* Smooth corners */
-  font-size: 14px;
+  background-color: var(--btn-white);
+  color: var(--btn-text-dark);
+  border: none;
+  padding: 14px 24px;
+  border-radius: 30px; /* Fully rounded pill */
+  font-size: 16px;
   font-weight: 600;
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 8px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); /* Subtle depth */
-  transition: all 0.2s cubic-bezier(0.25, 1, 0.5, 1);
+  justify-content: center;
+  gap: 10px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  transition: transform 0.2s cubic-bezier(0.25, 1, 0.5, 1);
+  width: 100%; /* Full width container on mobile */
+  max-width: 400px; /* Limit width on desktop */
 }
 
 .new-note-btn:hover {
-  background-color: #333;
-  transform: translateY(-2px); /* Slight lift */
-  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
+  transform: scale(1.02);
+  background-color: #f2f2f7;
 }
 
 .new-note-btn svg {
-  width: 18px;
-  height: 18px;
-  stroke-width: 2.5px;
+  stroke: var(--btn-text-dark); /* Ensure icon is black */
+  width: 20px;
+  height: 20px;
 }
 
-/* 3. "Add Cover" Button - Minimal Pill Style */
+/* =========================================
+   5. GRID & CARDS (THE CORE REDESIGN)
+   ========================================= */
+.note-grid {
+  display: grid;
+  /* Auto-fit creates columns that wrap. Min width 300px ensures cards don't get too thin. */
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 24px;
+  padding-bottom: 100px;
+}
+
+.note-card {
+  background: var(--bg-card);
+  border: 1px solid rgba(255,255,255,0.05); /* Very subtle border */
+  border-radius: 20px; /* Large rounded corners */
+  height: 280px; /* Taller styling */
+  display: flex;
+  flex-direction: column;
+  cursor: pointer;
+  overflow: hidden;
+  position: relative;
+  transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s;
+}
+
+.note-card:hover {
+  transform: translateY(-6px);
+  box-shadow: var(--shadow-card);
+  border-color: rgba(255,255,255,0.15);
+}
+
+/* Cover Image Half (55% Height) */
+.note-card-cover {
+  height: 55%; 
+  width: 100%;
+  background-size: cover;
+  background-position: center;
+  position: relative;
+  /* Add subtle shadow inside cover */
+  box-shadow: inset 0 -20px 40px -20px rgba(0,0,0,0.8);
+}
+
+/* Text Content Half */
+.note-card-content {
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  background: var(--bg-card);
+}
+
+.note-card h3 {
+  margin: 0 0 8px 0;
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.note-card-preview {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2; /* Show only 2 lines */
+  -webkit-box-orient: vertical;
+}
+
+.note-card-footer {
+  margin-top: auto;
+  padding-top: 12px;
+  font-size: 13px;
+  color: var(--text-tertiary);
+  font-weight: 500;
+}
+
+/* =========================================
+   6. RESPONSIVE (MOBILE)
+   ========================================= */
+@media (max-width: 768px) {
+  /* Overlay Sidebar Logic */
+  .sidebar {
+    position: absolute;
+    height: 100%;
+    z-index: 1000;
+    box-shadow: 10px 0 30px rgba(0,0,0,0.5);
+    background: rgba(18, 18, 20, 0.95); /* Slight transparency */
+    backdrop-filter: blur(10px);
+  }
+  
+  .sidebar.collapsed { width: 0; padding: 0; }
+  .main-content { width: 100%; }
+
+  /* Dashboard Adjustments */
+  .dashboard {
+    padding: 80px 20px; /* More top padding */
+  }
+
+  .dashboard-header {
+    margin-bottom: 30px;
+  }
+
+  .dashboard-header h1 {
+    font-size: 34px;
+  }
+  
+  /* Force 1 Column on Mobile */
+  .note-grid {
+    grid-template-columns: 1fr; 
+    gap: 20px;
+  }
+  
+  .note-card {
+    height: 260px; /* Slightly shorter on mobile */
+  }
+
+  /* Adjust Toggle Button visibility */
+  .sidebar-toggle-btn {
+    left: 10px;
+    top: 10px;
+    background: rgba(255,255,255,0.1); 
+    backdrop-filter: blur(4px);
+    color: white;
+  }
+}
+
+/* =========================================
+   7. EDITOR STYLES (DARK MODE ADAPTATION)
+   ========================================= */
+.editor-container { 
+  max-width: 900px; 
+  margin: 0 auto; 
+  padding: 60px 80px 120px 80px; 
+  animation: fadeIn 0.3s ease-in-out; 
+  color: var(--text-primary);
+}
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+.editor-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px; }
+.secondary-btn { background: transparent; border: none; color: var(--text-secondary); cursor: pointer; font-size: 14px; font-weight: 500; padding: 6px 10px; border-radius: 4px; }
+.secondary-btn:hover { background: rgba(255,255,255,0.1); color: var(--text-primary); }
+
+.title-input { 
+  width: 100%; 
+  font-size: 42px; 
+  font-weight: 800; 
+  border: none; 
+  outline: none; 
+  margin-bottom: 24px; 
+  color: var(--text-primary); 
+  background: transparent; 
+  padding: 0; 
+  line-height: 1.2; 
+}
+.title-input::placeholder { color: var(--text-tertiary); }
+
+/* TipTap Dark Overrides */
+.tiptap-editor { min-height: 60vh; }
+.ProseMirror { font-size: 17px; line-height: 1.7; color: #d1d1d6; outline: none; }
+.ProseMirror p.is-editor-empty:first-child::before { color: rgba(255,255,255,0.2); content: attr(data-placeholder); float: left; height: 0; pointer-events: none; }
+.ProseMirror h1, .ProseMirror h2, .ProseMirror h3 { color: var(--text-primary); font-weight: 700; }
+.ProseMirror pre { background: #2c2c2e; color: #ff9f0a; padding: 1rem 1.5rem; border-radius: 8px; font-family: monospace; font-size: 14px; margin: 1.5rem 0; }
+.ProseMirror table { border: 1px solid var(--border-subtle); border-radius: 6px; overflow: hidden; }
+.ProseMirror th { background-color: rgba(255,255,255,0.05); font-weight: 600; color: var(--text-secondary); }
+
+/* Menus & Pickers */
+.cover-picker-menu, .context-menu, .slash-menu {
+  background: #252525;
+  border: 1px solid rgba(255,255,255,0.1);
+  box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+  border-radius: 12px;
+  padding: 8px;
+}
+.context-menu-item, .slash-item { 
+  color: var(--text-secondary); 
+  border-radius: 6px; 
+  padding: 8px 10px;
+}
+.context-menu-item:hover, .slash-item:hover, .slash-item.is-selected {
+  background: var(--accent-blue);
+  color: white;
+}
+.cover-option { background-color: #333; border-radius: 6px; }
+
+/* Add Cover Button (Dark Pill) */
 .add-cover-btn {
   color: var(--text-secondary);
-  background: transparent;
-  border: 1px solid transparent;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
@@ -419,19 +436,45 @@ body {
   align-items: center;
   gap: 8px;
   margin-bottom: 20px;
-  padding: 6px 12px;
-  border-radius: 20px; /* Pill shape */
+  padding: 6px 14px;
+  border-radius: 20px;
   transition: all 0.2s ease;
 }
-
 .add-cover-btn:hover {
-  background: rgba(0, 0, 0, 0.04);
+  background: rgba(255,255,255,0.1);
   color: var(--text-primary);
-  border-color: rgba(0, 0, 0, 0.05);
+  border-color: rgba(255,255,255,0.2);
+}
+.add-cover-btn svg { width: 14px; height: 14px; opacity: 0.8; }
+
+/* =========================================
+   8. PAGE COVERS & PICKER (FIXED)
+   ========================================= */
+.cover-image-container {
+  width: 100%;
+  height: 240px;
+  background-color: #1c1c1e;
+  position: relative;
+  overflow: visible !important; 
+  display: none;
+  border-radius: 8px 8px 0 0;
+  margin-bottom: 20px;
+}
+.cover-image-container.visible { display: block; }
+
+.cover-image { 
+  width: 100%; height: 100%; object-fit: cover; object-position: center 50%;
+  border-radius: 8px 8px 0 0; 
+  mask-image: linear-gradient(to bottom, black 80%, transparent 100%);
 }
 
-.add-cover-btn svg {
-  width: 14px;
-  height: 14px;
-  opacity: 0.7;
+.cover-controls {
+  position: absolute; bottom: 20px; right: 20px; z-index: 10; 
+  opacity: 0; transition: opacity 0.2s;
+  background: rgba(0,0,0,0.8); backdrop-filter: blur(4px);
+  padding: 4px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);
+  display: flex; gap: 8px;
 }
+.cover-image-container:hover .cover-controls { opacity: 1; }
+.cover-btn { color: #ccc; }
+.cover-btn:hover { background: rgba(255,255,255,0.1); color: white; }
