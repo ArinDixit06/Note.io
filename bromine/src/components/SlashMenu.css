@@ -1,0 +1,35 @@
+.slash-menu {
+  background: white;
+  border: 1px solid #e0e0e0;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  border-radius: 6px;
+  overflow: hidden;
+  padding: 4px;
+  width: 200px;
+  display: flex;
+  flex-direction: column;
+}
+
+.slash-item {
+  display: flex;
+  align-items: center;
+  background: transparent;
+  border: none;
+  padding: 8px 12px;
+  text-align: left;
+  font-size: 14px;
+  cursor: pointer;
+  border-radius: 4px;
+  color: #333;
+}
+
+.slash-item:hover, .slash-item.is-selected {
+  background: #f0f0f0;
+  color: #000;
+}
+
+.slash-empty {
+  padding: 8px;
+  color: #888;
+  font-size: 13px;
+}
