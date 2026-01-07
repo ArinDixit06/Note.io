@@ -43,38 +43,45 @@ body {
   height: 100vh;
   width: 100vw;
   overflow: hidden;
+  position: relative; /* Context for mobile positioning */
 }
 
-/* Sidebar Styling */
+/* --- SIDEBAR STYLING --- */
 .sidebar {
   width: 240px;
   background: var(--bg-sidebar);
   border-right: 1px solid var(--border-subtle);
   padding: 12px 8px;
+  
+  /* FIX 1: PUSH CONTENT DOWN SO BUTTON DOESN'T COVER TEXT */
+  padding-top: 50px; 
+  
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
   user-select: none;
-  transition: width 0.3s cubic-bezier(0.25, 1, 0.5, 1), padding 0.3s ease; /* Smooth Retract */
+  transition: width 0.3s cubic-bezier(0.25, 1, 0.5, 1), padding 0.3s ease;
   position: relative;
-  overflow: hidden; /* Hide content when collapsed */
+  overflow: hidden; 
+  white-space: nowrap;
 }
 
 /* The Collapsed State */
 .sidebar.collapsed {
   width: 0;
-  padding: 12px 0; /* Remove horizontal padding */
+  padding: 12px 0; 
+  padding-top: 50px; /* Keep the top spacing consistent */
   border-right: none;
 }
 
+/* Brand / Title */
 .brand h2 {
   font-size: 12px;
   font-weight: 600;
   color: var(--text-secondary);
   padding: 0 12px;
-  margin: 16px 0 8px 0;
+  margin: 0 0 12px 0; /* Removed top margin since we used padding-top on parent */
   text-transform: uppercase;
-  white-space: nowrap; /* Prevent text wrapping during collapse */
 }
 
 /* Menu Items */
@@ -94,18 +101,17 @@ body {
   align-items: center;
   gap: 10px;
   transition: background 0.1s ease;
-  white-space: nowrap;
 }
 
 .menu-item:hover { background: var(--hover-item); }
 .menu-item.active { background: var(--hover-item); color: var(--text-primary); }
 
-/* Toggle Button (Hamburger) */
+/* --- TOGGLE BUTTON --- */
 .sidebar-toggle-btn {
   position: absolute;
   top: 15px;
   left: 15px;
-  z-index: 100; /* Ensure it sits above everything */
+  z-index: 2000; /* Ensure it is ALWAYS on top */
   background: transparent;
   border: none;
   cursor: pointer;
@@ -115,37 +121,160 @@ body {
   border-radius: 4px;
   transition: color 0.2s;
 }
-.sidebar-toggle-btn:hover { color: var(--text-primary); background: var(--hover-item); }
+.sidebar-toggle-btn:hover { color: var(--text-primary); background: rgba(0,0,0,0.05); }
 
 /* Main Content Area */
 .main-content {
   flex: 1;
   overflow-y: auto;
-  position: relative; /* Context for absolute toggle button */
+  position: relative;
   scrollbar-width: thin;
+  /* Add padding top to prevent content hidden behind button on mobile */
+  padding-top: 0; 
 }
 
 /* =========================================
-   3. DASHBOARD
+   3. RESPONSIVE / MOBILE STYLES (NEW)
+   ========================================= */
+
+/* Mobile & Tablet (Max width 768px) */
+@media (max-width: 768px) {
+  
+  /* Make Sidebar Overlay the content instead of pushing it */
+  .sidebar {
+    position: absolute;
+    height: 100%;
+    z-index: 1000;
+    box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+  }
+  
+  /* When collapsed on mobile, width is 0 */
+  .sidebar.collapsed {
+    width: 0;
+    padding: 0; /* Fully hide padding to avoid artifacts */
+  }
+
+  /* Adjust Main Content to be full width */
+  .main-content {
+    width: 100%;
+  }
+
+  /* Ensure the toggle button is always visible on the white background */
+  .sidebar-toggle-btn {
+    left: 10px;
+    top: 10px;
+    background: rgba(255,255,255,0.8); /* Add background so it pops over content */
+    backdrop-filter: blur(4px);
+  }
+
+  /* Adjust Dashboard Padding for small screens */
+  .dashboard {
+    padding: 60px 20px; /* Less padding on sides */
+  }
+  
+  .editor-container {
+    padding: 60px 20px 100px 20px;
+  }
+}
+
+/* =========================================
+   4. DASHBOARD & GRID (UPDATED PREVIEW)
    ========================================= */
 .dashboard { padding: 60px 80px; max-width: 1200px; margin: 0 auto; }
-.dashboard-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 40px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 20px; }
-.dashboard-header h1 { font-size: 32px; font-weight: 700; margin: 0; letter-spacing: -0.5px; }
 
-.new-note-btn {
-  background-color: var(--text-primary); color: white; border: none; padding: 8px 16px; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+/* ... existing header styles ... */
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center; /* Center vertically */
+  margin-bottom: 40px;
+  border-bottom: 1px solid var(--border-subtle);
+  padding-bottom: 20px;
 }
-.new-note-btn:hover { background-color: #333; transform: translateY(-1px); }
 
-.note-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 24px; }
-.note-card { background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 20px; height: 180px; display: flex; flex-direction: column; cursor: pointer; transition: box-shadow 0.2s ease, border-color 0.2s ease; overflow: hidden; }
-.note-card:hover { box-shadow: var(--shadow-card); border-color: rgba(0,0,0,0.08); }
-.note-card h3 { margin: 0 0 12px 0; font-size: 17px; font-weight: 600; color: var(--text-primary); }
-.note-card-preview { font-size: 14px; color: var(--text-secondary); flex-grow: 1; overflow: hidden; mask-image: linear-gradient(180deg, #000 60%, transparent); }
-.note-card-footer { margin-top: 12px; font-size: 12px; color: var(--text-tertiary); font-weight: 500; }
+.dashboard-header h1 {
+  font-size: 32px;
+  font-weight: 700;
+  margin: 0;
+  letter-spacing: -0.5px;
+  color: var(--text-primary);
+}
 
+/* Grid Layout */
+.note-grid { 
+  display: grid; 
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); 
+  gap: 24px; 
+}
+
+/* The Card Container */
+.note-card { 
+  background: var(--bg-card); 
+  border: 1px solid var(--border-subtle); 
+  border-radius: 12px; /* Slightly rounder */
+  height: 200px; /* Fixed height */
+  display: flex; 
+  flex-direction: column; 
+  cursor: pointer; 
+  transition: box-shadow 0.2s ease, transform 0.2s ease; 
+  overflow: hidden; /* Ensures image doesn't spill out */
+  position: relative;
+}
+
+.note-card:hover { 
+  box-shadow: 0 8px 20px rgba(0,0,0,0.08); 
+  transform: translateY(-2px);
+  border-color: rgba(0,0,0,0.15); 
+}
+
+/* 1. TOP HALF: Cover Image Area */
+.note-card-cover {
+  height: 45%; /* Takes top 45% of card */
+  width: 100%;
+  background-color: #f0f0f0; /* Fallback grey */
+  background-size: cover;
+  background-position: center;
+  border-bottom: 1px solid rgba(0,0,0,0.05);
+}
+
+/* 2. BOTTOM HALF: Text Content Area */
+.note-card-content {
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  flex: 1; /* Takes remaining space */
+  background: white;
+}
+
+.note-card h3 { 
+  margin: 0 0 6px 0; 
+  font-size: 16px; 
+  font-weight: 600; 
+  color: var(--text-primary);
+  white-space: nowrap; 
+  overflow: hidden; 
+  text-overflow: ellipsis; 
+}
+
+.note-card-preview { 
+  font-size: 13px; 
+  color: var(--text-secondary); 
+  flex-grow: 1; 
+  overflow: hidden; 
+  line-height: 1.4;
+  /* Fade out text at the bottom */
+  mask-image: linear-gradient(180deg, #000 60%, transparent); 
+  -webkit-mask-image: linear-gradient(180deg, #000 60%, transparent);
+}
+
+.note-card-footer { 
+  margin-top: 8px; 
+  font-size: 11px; 
+  color: var(--text-tertiary); 
+  font-weight: 500; 
+}
 /* =========================================
-   4. EDITOR STYLES
+   5. EDITOR STYLES
    ========================================= */
 .editor-container { max-width: 900px; margin: 0 auto; padding: 60px 80px 120px 80px; animation: fadeIn 0.3s ease-in-out; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
@@ -175,17 +304,16 @@ body {
 .context-menu-item.delete:hover { background-color: #FF3B30; color: white; }
 
 /* =========================================
-   5. PAGE COVERS & PICKER (FIXED)
+   6. PAGE COVERS & PICKER (FIXED)
    ========================================= */
 .cover-image-container {
   width: 100%;
   height: 220px;
   background-color: #f7f7f5;
   position: relative;
-  /* FIX 1: Allow popup to overflow outside the container */
   overflow: visible !important; 
   display: none;
-  border-radius: 8px 8px 0 0; /* Round top corners */
+  border-radius: 8px 8px 0 0;
 }
 
 .cover-image-container.visible { display: block; }
@@ -195,7 +323,7 @@ body {
   height: 100%; 
   object-fit: cover; 
   object-position: center 50%;
-  border-radius: 8px 8px 0 0; /* Clip image manually */
+  border-radius: 8px 8px 0 0; 
 }
 
 /* Controls Area */
@@ -203,7 +331,6 @@ body {
   position: absolute; 
   bottom: 10px; 
   right: 20px;
-  /* FIX 2: Force controls above image */
   z-index: 10; 
   opacity: 0; 
   transition: opacity 0.2s;
@@ -236,7 +363,6 @@ body {
   border-radius: 8px;
   padding: 12px;
   width: 320px;
-  /* FIX 3: Ensure this sits on top of everything else */
   z-index: 1000; 
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -253,3 +379,59 @@ body {
   background-color: #eee;
 }
 .cover-option:hover { transform: scale(1.05); border-color: var(--accent-blue); }
+.new-note-btn {
+  background-color: #191919; /* Deep matte black */
+  color: #ffffff;
+  border: 1px solid transparent;
+  padding: 10px 18px;
+  border-radius: 8px; /* Smooth corners */
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); /* Subtle depth */
+  transition: all 0.2s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.new-note-btn:hover {
+  background-color: #333;
+  transform: translateY(-2px); /* Slight lift */
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
+}
+
+.new-note-btn svg {
+  width: 18px;
+  height: 18px;
+  stroke-width: 2.5px;
+}
+
+/* 3. "Add Cover" Button - Minimal Pill Style */
+.add-cover-btn {
+  color: var(--text-secondary);
+  background: transparent;
+  border: 1px solid transparent;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 20px;
+  padding: 6px 12px;
+  border-radius: 20px; /* Pill shape */
+  transition: all 0.2s ease;
+}
+
+.add-cover-btn:hover {
+  background: rgba(0, 0, 0, 0.04);
+  color: var(--text-primary);
+  border-color: rgba(0, 0, 0, 0.05);
+}
+
+.add-cover-btn svg {
+  width: 14px;
+  height: 14px;
+  opacity: 0.7;
+}

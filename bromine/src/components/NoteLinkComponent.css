@@ -1,0 +1,129 @@
+/* --- INLINE LINK STYLE --- */
+.note-link-wrapper-inline {
+  display: inline-flex;
+  align-items: center;
+  margin: 4px 0;
+  user-select: none;
+}
+
+.note-link-anchor {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  background: rgba(55, 53, 47, 0.08); /* Notion grey */
+  border-radius: 4px;
+  cursor: pointer;
+  color: #37352f;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(55, 53, 47, 0.16);
+  transition: background 0.2s;
+}
+
+.note-link-anchor:hover {
+  background: rgba(55, 53, 47, 0.16);
+}
+
+.note-icon { font-size: 14px; }
+.note-text { font-weight: 500; font-size: 14px; text-decoration: underline; text-decoration-color: rgba(0,0,0,0.2); }
+
+/* --- CARD STYLE (Matches Home Grid) --- */
+.note-link-wrapper-block {
+  margin: 1.5rem 0;
+}
+
+.note-link-card {
+  width: 300px; /* Fixed width for embedded card */
+  height: 180px;
+  border: 1px solid rgba(0,0,0,0.1);
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  cursor: pointer;
+  background: white;
+  transition: box-shadow 0.2s, transform 0.2s;
+  position: relative;
+}
+
+.note-link-card:hover {
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  transform: translateY(-2px);
+}
+
+/* 45:55 Ratio Logic */
+.note-link-cover {
+  height: 45%;
+  width: 100%;
+  background-size: cover;
+  background-position: center;
+  border-bottom: 1px solid rgba(0,0,0,0.05);
+}
+
+.note-link-content {
+  flex: 1;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+}
+
+.note-link-header h4 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: #191711;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.note-date {
+  font-size: 10px;
+  color: #9b9a97;
+  display: block;
+  margin-top: 2px;
+}
+
+.note-link-preview {
+  margin: 8px 0 0 0;
+  font-size: 12px;
+  color: #787774;
+  line-height: 1.4;
+  overflow: hidden;
+  mask-image: linear-gradient(180deg, black 50%, transparent);
+}
+
+/* --- TOGGLE BUTTONS --- */
+.view-toggle-btn-inline {
+  margin-left: 6px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  opacity: 0;
+  font-size: 14px;
+  color: #999;
+  transition: opacity 0.2s;
+}
+
+.note-link-wrapper-inline:hover .view-toggle-btn-inline {
+  opacity: 1;
+}
+
+.view-toggle-btn-card {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: rgba(255,255,255,0.9);
+  border: 1px solid rgba(0,0,0,0.1);
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 11px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s;
+  font-weight: 600;
+}
+
+.note-link-card:hover .view-toggle-btn-card {
+  opacity: 1;
+}

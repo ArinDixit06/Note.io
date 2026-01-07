@@ -97,6 +97,8 @@ function App() {
             onUpdate={handleUpdate} 
             onDelete={handleDelete}
             onBack={() => setSelectedNote(null)} 
+            allNotes={notes} 
+  onNavigate={setSelectedNote}
           />
         ) : (
           /* --- GRID / DASHBOARD VIEW --- */
