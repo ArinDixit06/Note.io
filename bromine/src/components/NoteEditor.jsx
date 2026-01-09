@@ -14,285 +14,211 @@ import 'tippy.js/dist/tippy.css';
 import SlashCommand from '../extensions/SlashCommand';
 import SlashMenu from './SlashMenu';
 
-// --- NEW IMPORTS ---
 import NoteLink from '../extensions/NoteLink';
 import NotePicker from './NotePicker';
 
 // =========================================
-// 1. EXPANDED COVERS LIST
+// COVERS
 // =========================================
 const COVERS = [
-  // --- SOLID COLORS ---
-  "#E5E5E5", "#FFD700", "#FF6B6B", "#4ECDC4", "#1A535C", 
-  "#F7FFF7", "#FFE66D", "#292F36", "#5F0F40", "#9A031E", 
-  "#FB8B24", "#3D348B", "#7678ED", "#F18701",
-
-  // --- GRADIENTS ---
-  "linear-gradient(90deg, #ff9a9e 0%, #fecfef 99%, #fecfef 100%)",
-  "linear-gradient(120deg, #a1c4fd 0%, #c2e9fb 100%)",
-  "linear-gradient(120deg, #84fab0 0%, #8fd3f4 100%)",
-  "linear-gradient(120deg, #fccb90 0%, #d57eeb 100%)",
-  "linear-gradient(120deg, #e0c3fc 0%, #8ec5fc 100%)",
-  "linear-gradient(120deg, #f093fb 0%, #f5576c 100%)",
-  "linear-gradient(to right, #43e97b 0%, #38f9d7 100%)",
-  "linear-gradient(to top, #30cfd0 0%, #330867 100%)",
-  "linear-gradient(to top, #5ee7df 0%, #b490ca 100%)",
-  "linear-gradient(to right, #b8cbb8 0%, #b8cbb8 0%, #b465da 0%, #cf6cc9 33%, #ee609c 66%, #ee609c 100%)",
-  "linear-gradient(to right, #6a11cb 0%, #2575fc 100%)",
-  "linear-gradient(to top, #c471f5 0%, #fa71cd 100%)",
-  "linear-gradient(to right, #f83600 0%, #f9d423 100%)", 
-  "linear-gradient(to top, #0ba360 0%, #3cba92 100%)",   
-
-  // --- NATURE ---
-  "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1200&q=80", 
-  "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&w=1200&q=80", 
-  "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&w=1200&q=80", 
-  "https://images.unsplash.com/photo-1472214103451-9374bd1c798e?auto=format&fit=crop&w=1200&q=80", 
-  "https://images.unsplash.com/photo-1465146344425-f00d5f5c8f07?auto=format&fit=crop&w=1200&q=80", 
-  "https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&w=1200&q=80", 
-  "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80", 
-  
-  // --- SPACE & DARK ---
-  "https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=1200&q=80", 
-  "https://images.unsplash.com/photo-1534796636912-3b95b3ab5986?auto=format&fit=crop&w=1200&q=80", 
-  "https://images.unsplash.com/photo-1462331940025-496dfbfc7564?auto=format&fit=crop&w=1200&q=80", 
-  "https://images.unsplash.com/photo-1481026469463-66327c86e544?auto=format&fit=crop&w=1200&q=80", 
-
-  // --- ABSTRACT ---
-  "https://images.unsplash.com/photo-1550684848-fac1c5b4e853?auto=format&fit=crop&w=1200&q=80", 
-  "https://images.unsplash.com/photo-1541701494587-cb58502866ab?auto=format&fit=crop&w=1200&q=80", 
-  "https://images.unsplash.com/photo-1558591710-4b4a1ae0f04d?auto=format&fit=crop&w=1200&q=80", 
-  "https://images.unsplash.com/photo-1508615039623-a25605d2b022?auto=format&fit=crop&w=1200&q=80", 
-  "https://images.unsplash.com/photo-1534237710431-e2fc698436d0?auto=format&fit=crop&w=1200&q=80", 
-  "https://images.unsplash.com/photo-1497215728101-856f4ea42174?auto=format&fit=crop&w=1200&q=80", 
-  "https://images.unsplash.com/photo-1494438639946-1ebd1d20bf85?auto=format&fit=crop&w=1200&q=80", 
-  "https://images.unsplash.com/photo-1519710164239-da123dc03ef4?auto=format&fit=crop&w=1200&q=80", 
+  "#E5E5E5", "#FFD700", "#FF6B6B", "#4ECDC4",
+  "linear-gradient(120deg,#a1c4fd,#c2e9fb)",
+  "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1200&q=80",
 ];
 
+// =========================================
+// NOTE EDITOR (FIXED)
+// =========================================
 const NoteEditor = ({ note, onUpdate, onDelete, onBack, allNotes, onNavigate }) => {
+
+  // ===== SINGLE SOURCE OF TRUTH =====
   const [title, setTitle] = useState(note.title || "");
   const [cover, setCover] = useState(note.coverImage || "");
   const [showCoverPicker, setShowCoverPicker] = useState(false);
-   
+
   const [showNotePicker, setShowNotePicker] = useState(false);
-  const [pickerRange, setPickerRange] = useState(null); 
+  const [pickerRange, setPickerRange] = useState(null);
 
   const pickerRef = useRef(null);
 
-  // --- FIX 1: Change dependency from [note] to [note._id] ---
-  // This prevents the cover from reverting to the old value while you are editing the same note.
+  // ===== HYDRATE ONLY WHEN NOTE CHANGES =====
   useEffect(() => {
-    if (note) {
-        setTitle(note.title || "");
-        setCover(note.coverImage || "");
-    }
-  }, [note._id]); 
+    setTitle(note.title || "");
+    setCover(note.coverImage || "");
+    editor?.commands.setContent(note.content || "");
+  }, [note._id]);
 
+  // ===== CLICK OUTSIDE COVER PICKER =====
   useEffect(() => {
-    function handleClickOutside(event) {
-      if (pickerRef.current && !pickerRef.current.contains(event.target)) {
-        setShowCoverPicker(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [pickerRef]);
+    const close = e => pickerRef.current && !pickerRef.current.contains(e.target) && setShowCoverPicker(false);
+    document.addEventListener("mousedown", close);
+    return () => document.removeEventListener("mousedown", close);
+  }, []);
 
-  const handleCoverSelect = (selectedCover) => {
-    setCover(selectedCover);
+  // ===== SAVE HELPERS =====
+  const save = (extra = {}) => {
+    onUpdate({
+      ...note,
+      title,
+      coverImage: cover,
+      content: editor.getHTML(),
+      ...extra,
+    });
+  };
+
+  // ===== COVER ACTIONS =====
+  const handleCoverSelect = (c) => {
+    setCover(c);
     setShowCoverPicker(false);
-    onUpdate({ ...note, title, content: editor.getHTML(), coverImage: selectedCover });
+    save({ coverImage: c });
   };
 
   const removeCover = () => {
     setCover("");
-    onUpdate({ ...note, title, content: editor.getHTML(), coverImage: "" });
+    save({ coverImage: "" });
   };
 
-  // --- FIX 2: Create a function for Adding Cover that also Saves ---
   const handleAddCover = () => {
-    const defaultCover = COVERS[0]; // Pick the first cover
-    setCover(defaultCover);
+    const c = COVERS[0];
+    setCover(c);
     setShowCoverPicker(true);
-    // Crucial: We must save this change immediately
-    onUpdate({ ...note, title, content: editor.getHTML(), coverImage: defaultCover });
+    save({ coverImage: c });
   };
 
-  const handleTitleChange = (e) => {
+  // ===== TITLE =====
+  const handleTitleChange = e => {
     setTitle(e.target.value);
-    onUpdate({ ...note, title: e.target.value, coverImage: cover, content: editor ? editor.getHTML() : "" });
+    save({ title: e.target.value });
   };
 
-  const insertLinkedNote = (selectedNote) => {
-    if (!editor) return;
-    const previewText = selectedNote.content.replace(/<[^>]+>/g, '').slice(0, 100) || "No preview";
-
-    editor.chain().focus().insertContentAt(pickerRange, {
-      type: 'noteLink',
-      attrs: {
-        id: selectedNote._id,
-        title: selectedNote.title,
-        cover: selectedNote.coverImage,
-        preview: previewText,
-        createdAt: selectedNote.createdAt,
-        viewMode: 'card'
-      }
-    }).run();
-
-    setShowNotePicker(false);
-  };
-
-  const getSlashItems = ({ query }) => {
-    return [
-      { title: 'Text', command: ({ editor, range }) => editor.chain().focus().deleteRange(range).setParagraph().run(), element: <span>Aa &nbsp; Text</span> },
-      { title: 'Heading 1', command: ({ editor, range }) => editor.chain().focus().deleteRange(range).setNode('heading', { level: 1 }).run(), element: <span>H1 &nbsp; Big Heading</span> },
-      { title: 'Heading 2', command: ({ editor, range }) => editor.chain().focus().deleteRange(range).setNode('heading', { level: 2 }).run(), element: <span>H2 &nbsp; Medium Heading</span> },
-      { title: 'Bullet List', command: ({ editor, range }) => editor.chain().focus().deleteRange(range).toggleBulletList().run(), element: <span>• &nbsp; Bullet List</span> },
-      { title: 'Numbered List', command: ({ editor, range }) => editor.chain().focus().deleteRange(range).toggleOrderedList().run(), element: <span>1. &nbsp; Numbered List</span> },
-      { title: 'Divider', command: ({ editor, range }) => editor.chain().focus().deleteRange(range).setHorizontalRule().run(), element: <span>— &nbsp; Divider</span> },
-      { title: 'Code Block', command: ({ editor, range }) => editor.chain().focus().deleteRange(range).setCodeBlock().run(), element: <span>&lt;&gt; &nbsp; Code Block</span> },
-      { 
-        title: 'Link to Note', 
-        command: ({ editor, range }) => {
-          editor.chain().focus().deleteRange(range).run();
-          setPickerRange(range.from);
-          setShowNotePicker(true);
-        }, 
-        element: <span>🔗 &nbsp; Link Note</span> 
-      },
-    ].filter(item => item.title.toLowerCase().includes(query.toLowerCase()));
-  };
-
-  const renderSlashMenu = () => {
-    let component;
-    let popup;
-    return {
-      onStart: props => {
-        component = new ReactRenderer(SlashMenu, { props, editor: props.editor });
-        if (!props.clientRect) return;
-        popup = tippy('body', {
-          getReferenceClientRect: props.clientRect,
-          appendTo: () => document.body,
-          content: component.element,
-          showOnCreate: true,
-          interactive: true,
-          trigger: 'manual',
-          placement: 'bottom-start',
-        });
-      },
-      onUpdate: props => {
-        component.updateProps(props);
-        if (!props.clientRect) return;
-        popup[0].setProps({ getReferenceClientRect: props.clientRect });
-      },
-      onKeyDown: props => {
-        if (props.event.key === 'Escape') { popup[0].hide(); return true; }
-        return component.ref?.onKeyDown(props);
-      },
-      onExit: () => { popup[0].destroy(); component.destroy(); },
-    };
-  };
-
-  const CustomKeymap = Extension.create({
-    name: 'customKeymap',
-    priority: 1000, 
-    addKeyboardShortcuts() {
-      return {
-        'Enter': ({ editor }) => {
-          if (editor.isActive('listItem')) return editor.chain().splitListItem('listItem').run();
-          return false; 
-        }
-      };
-    }
-  });
-
+  // ===== TIPTAP =====
   const editor = useEditor({
     extensions: [
-      StarterKit, Placeholder.configure({ placeholder: "Type '/' for commands..." }),
-      HorizontalRule, Table.configure({ resizable: true }), TableRow, TableHeader, TableCell,
-      CodeBlock, SlashCommand.configure({ suggestion: { items: getSlashItems, render: renderSlashMenu } }),
-      CustomKeymap, 
+      StarterKit,
+      Placeholder.configure({ placeholder: "Type '/' for commands..." }),
+      HorizontalRule,
+      Table.configure({ resizable: true }),
+      TableRow, TableHeader, TableCell,
+      CodeBlock,
+      SlashCommand.configure({
+        suggestion: {
+          items: ({ query }) => [
+            {
+              title: 'Text',
+              command: ({ editor, range }) =>
+                editor.chain().focus().deleteRange(range).setParagraph().run(),
+              element: <span>Aa Text</span>,
+            },
+            {
+              title: 'Link to Note',
+              command: ({ editor, range }) => {
+                editor.chain().focus().deleteRange(range).run();
+                setPickerRange(range.from);
+                setShowNotePicker(true);
+              },
+              element: <span>🔗 Link Note</span>,
+            },
+          ],
+          render: () => {
+            let component, popup;
+            return {
+              onStart: props => {
+                component = new ReactRenderer(SlashMenu, { props, editor: props.editor });
+                popup = tippy('body', {
+                  getReferenceClientRect: props.clientRect,
+                  content: component.element,
+                  showOnCreate: true,
+                  interactive: true,
+                  trigger: 'manual',
+                });
+              },
+              onUpdate: props => component.updateProps(props),
+              onExit: () => popup[0].destroy(),
+            };
+          },
+        },
+      }),
       NoteLink.configure({
-        onNavigate: (noteId) => {
-           if (onNavigate) onNavigate(noteId);
-        }
-      })
+        onNavigate: id => onNavigate?.(id),
+      }),
     ],
-    content: note.content || '',
+    content: note.content || "",
+    // 🚫 IMPORTANT: CONTENT ONLY — NO COVER HERE
     onUpdate: ({ editor }) => {
-      onUpdate({ ...note, title, coverImage: cover, content: editor.getHTML() });
+      onUpdate({ ...note, title, content: editor.getHTML() });
     },
   });
 
   if (!editor) return null;
 
+  // ===== RENDER =====
   return (
-    <div className="editor-shell" style={{ width: '100%', height: '100%' }}>
-      
-      <div className={`cover-image-container ${cover ? 'visible' : ''}`}>
-        
-        {cover.startsWith('linear-gradient') || cover.startsWith('#') ? (
-          <div className="cover-image" style={{ background: cover }} />
-        ) : (
-          <img 
-            src={cover} 
-            alt="Cover" 
-            className="cover-image" 
-            style={{ objectFit: 'cover', width: '100%', height: '100%' }} 
-          />
-        )}
+    <div className="editor-shell">
 
-        <div className="cover-controls" ref={pickerRef}>
-          <button className="cover-btn" onClick={() => setShowCoverPicker(!showCoverPicker)}>Change Cover</button>
-          <button className="cover-btn remove-btn" onClick={removeCover}>Remove</button>
-          
-          {showCoverPicker && (
-            <div className="cover-picker-menu">
-              {COVERS.map((c, index) => (
-                 <div 
-                    key={index} 
-                    className="cover-option" 
-                    onClick={() => handleCoverSelect(c)} 
-                    style={
-                        c.startsWith('http') 
-                        ? { backgroundImage: `url(${c})`, backgroundSize:'cover' } 
-                        : { background: c }
-                    } 
-                 />
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
+      {/* COVER */}
+      {cover && (
+        <div className="cover-image-container">
+          {cover.startsWith('http')
+            ? <img src={cover} className="cover-image" />
+            : <div className="cover-image" style={{ background: cover }} />
+          }
 
-      {showNotePicker && (
-        <NotePicker 
-          notes={allNotes.filter(n => n._id !== note._id)} 
-          onClose={() => setShowNotePicker(false)}
-          onSelect={insertLinkedNote}
-        />
-      )}
+          <div className="cover-controls" ref={pickerRef}>
+            <button onClick={() => setShowCoverPicker(!showCoverPicker)}>Change</button>
+            <button onClick={removeCover}>Remove</button>
 
-      <div className="editor-container">
-         <div className="editor-header">
-          <button onClick={onBack} className="secondary-btn">← Back</button>
-          <div className="editor-actions">
-            <button onClick={() => { if(window.confirm("Delete note?")) onDelete(note._id); }} className="delete-btn" style={{ background: 'transparent', border:'none', cursor:'pointer', color:'#FF3B30'}}>🗑️ Delete</button>
+            {showCoverPicker && (
+              <div className="cover-picker-menu">
+                {COVERS.map((c, i) => (
+                  <div
+                    key={i}
+                    className="cover-option"
+                    style={c.startsWith('http') ? { backgroundImage: `url(${c})` } : { background: c }}
+                    onClick={() => handleCoverSelect(c)}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         </div>
+      )}
 
-        {!cover && (
-           <button className="add-cover-btn" onClick={handleAddCover}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
-            Add Cover
-          </button>
-        )}
+      {!cover && (
+        <button className="add-cover-btn" onClick={handleAddCover}>
+          Add Cover
+        </button>
+      )}
 
-        <div className="editor-workspace">
-          <input type="text" placeholder="Untitled" value={title} onChange={handleTitleChange} className="title-input" />
-          <EditorContent editor={editor} className="tiptap-editor" />
-        </div>
+      {/* HEADER */}
+      <div className="editor-header">
+        <button onClick={onBack}>← Back</button>
+        <button onClick={() => window.confirm("Delete?") && onDelete(note._id)}>🗑️</button>
       </div>
+
+      {/* CONTENT */}
+      <input
+        className="title-input"
+        value={title}
+        placeholder="Untitled"
+        onChange={handleTitleChange}
+      />
+
+      <EditorContent editor={editor} />
+
+      {/* NOTE PICKER */}
+      {showNotePicker && (
+        <NotePicker
+          notes={allNotes.filter(n => n._id !== note._id)}
+          onClose={() => setShowNotePicker(false)}
+          onSelect={n => {
+            editor.chain().focus().insertContent({
+              type: 'noteLink',
+              attrs: n,
+            }).run();
+            setShowNotePicker(false);
+          }}
+        />
+      )}
     </div>
   );
 };
