@@ -19,26 +19,15 @@ import NoteLink from '../extensions/NoteLink';
 import NotePicker from './NotePicker';
 
 // =========================================
-// 1. EXPANDED & FIXED COVERS LIST
+// 1. EXPANDED COVERS LIST
 // =========================================
 const COVERS = [
-  // --- SOLID COLORS (Classic & Modern) ---
-  "#E5E5E5", // Light Gray
-  "#FFD700", // Gold
-  "#FF6B6B", // Coral Red
-  "#4ECDC4", // Teal
-  "#1A535C", // Dark Cyan
-  "#F7FFF7", // Mint White
-  "#FFE66D", // Pastel Yellow
-  "#292F36", // Gunmetal
-  "#5F0F40", // Tyrian Purple
-  "#9A031E", // Ruby Red
-  "#FB8B24", // Dark Orange
-  "#3D348B", // Deep Indigo
-  "#7678ED", // Soft Purple
-  "#F18701", // Bright Tangerine
+  // --- SOLID COLORS ---
+  "#E5E5E5", "#FFD700", "#FF6B6B", "#4ECDC4", "#1A535C", 
+  "#F7FFF7", "#FFE66D", "#292F36", "#5F0F40", "#9A031E", 
+  "#FB8B24", "#3D348B", "#7678ED", "#F18701",
 
-  // --- GRADIENTS (Smooth & Vibrant) ---
+  // --- GRADIENTS ---
   "linear-gradient(90deg, #ff9a9e 0%, #fecfef 99%, #fecfef 100%)",
   "linear-gradient(120deg, #a1c4fd 0%, #c2e9fb 100%)",
   "linear-gradient(120deg, #84fab0 0%, #8fd3f4 100%)",
@@ -51,33 +40,33 @@ const COVERS = [
   "linear-gradient(to right, #b8cbb8 0%, #b8cbb8 0%, #b465da 0%, #cf6cc9 33%, #ee609c 66%, #ee609c 100%)",
   "linear-gradient(to right, #6a11cb 0%, #2575fc 100%)",
   "linear-gradient(to top, #c471f5 0%, #fa71cd 100%)",
-  "linear-gradient(to right, #f83600 0%, #f9d423 100%)", // Fire
-  "linear-gradient(to top, #0ba360 0%, #3cba92 100%)",   // Emerald
+  "linear-gradient(to right, #f83600 0%, #f9d423 100%)", 
+  "linear-gradient(to top, #0ba360 0%, #3cba92 100%)",   
 
-  // --- NATURE (High Quality Unsplash) ---
-  "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1200&q=80", // Mountains
-  "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&w=1200&q=80", // Foggy Forest
-  "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&w=1200&q=80", // Sunlight Forest
-  "https://images.unsplash.com/photo-1472214103451-9374bd1c798e?auto=format&fit=crop&w=1200&q=80", // Grass Field
-  "https://images.unsplash.com/photo-1465146344425-f00d5f5c8f07?auto=format&fit=crop&w=1200&q=80", // Dark Ocean
-  "https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&w=1200&q=80", // Lake & Boat // Sakura (Cherry Blossoms)
-  "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80", // Beach
+  // --- NATURE ---
+  "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1200&q=80", 
+  "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&w=1200&q=80", 
+  "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&w=1200&q=80", 
+  "https://images.unsplash.com/photo-1472214103451-9374bd1c798e?auto=format&fit=crop&w=1200&q=80", 
+  "https://images.unsplash.com/photo-1465146344425-f00d5f5c8f07?auto=format&fit=crop&w=1200&q=80", 
+  "https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&w=1200&q=80", 
+  "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80", 
   
-  // --- SPACE & DARK (High Contrast) ---
-  "https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=1200&q=80", // Earth from Space
-  "https://images.unsplash.com/photo-1534796636912-3b95b3ab5986?auto=format&fit=crop&w=1200&q=80", // Starry Night
-  "https://images.unsplash.com/photo-1462331940025-496dfbfc7564?auto=format&fit=crop&w=1200&q=80", // Nebula
-  "https://images.unsplash.com/photo-1481026469463-66327c86e544?auto=format&fit=crop&w=1200&q=80", // Dark Room
+  // --- SPACE & DARK ---
+  "https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=1200&q=80", 
+  "https://images.unsplash.com/photo-1534796636912-3b95b3ab5986?auto=format&fit=crop&w=1200&q=80", 
+  "https://images.unsplash.com/photo-1462331940025-496dfbfc7564?auto=format&fit=crop&w=1200&q=80", 
+  "https://images.unsplash.com/photo-1481026469463-66327c86e544?auto=format&fit=crop&w=1200&q=80", 
 
-  // --- ABSTRACT & TEXTURE ---
-  "https://images.unsplash.com/photo-1550684848-fac1c5b4e853?auto=format&fit=crop&w=1200&q=80", // Liquid Purple
-  "https://images.unsplash.com/photo-1541701494587-cb58502866ab?auto=format&fit=crop&w=1200&q=80", // Abstract Paint
-  "https://images.unsplash.com/photo-1558591710-4b4a1ae0f04d?auto=format&fit=crop&w=1200&q=80", // Geometric Lines
-  "https://images.unsplash.com/photo-1508615039623-a25605d2b022?auto=format&fit=crop&w=1200&q=80", // Abstract Shapes
-  "https://images.unsplash.com/photo-1534237710431-e2fc698436d0?auto=format&fit=crop&w=1200&q=80", // Building Detail
-  "https://images.unsplash.com/photo-1497215728101-856f4ea42174?auto=format&fit=crop&w=1200&q=80", // Minimal Desk
-  "https://images.unsplash.com/photo-1494438639946-1ebd1d20bf85?auto=format&fit=crop&w=1200&q=80", // Gold Texture
-  "https://images.unsplash.com/photo-1519710164239-da123dc03ef4?auto=format&fit=crop&w=1200&q=80", // Minimal Interior
+  // --- ABSTRACT ---
+  "https://images.unsplash.com/photo-1550684848-fac1c5b4e853?auto=format&fit=crop&w=1200&q=80", 
+  "https://images.unsplash.com/photo-1541701494587-cb58502866ab?auto=format&fit=crop&w=1200&q=80", 
+  "https://images.unsplash.com/photo-1558591710-4b4a1ae0f04d?auto=format&fit=crop&w=1200&q=80", 
+  "https://images.unsplash.com/photo-1508615039623-a25605d2b022?auto=format&fit=crop&w=1200&q=80", 
+  "https://images.unsplash.com/photo-1534237710431-e2fc698436d0?auto=format&fit=crop&w=1200&q=80", 
+  "https://images.unsplash.com/photo-1497215728101-856f4ea42174?auto=format&fit=crop&w=1200&q=80", 
+  "https://images.unsplash.com/photo-1494438639946-1ebd1d20bf85?auto=format&fit=crop&w=1200&q=80", 
+  "https://images.unsplash.com/photo-1519710164239-da123dc03ef4?auto=format&fit=crop&w=1200&q=80", 
 ];
 
 const NoteEditor = ({ note, onUpdate, onDelete, onBack, allNotes, onNavigate }) => {
@@ -85,20 +74,20 @@ const NoteEditor = ({ note, onUpdate, onDelete, onBack, allNotes, onNavigate }) 
   const [cover, setCover] = useState(note.coverImage || "");
   const [showCoverPicker, setShowCoverPicker] = useState(false);
    
-  // --- STATE FOR NOTE PICKER ---
   const [showNotePicker, setShowNotePicker] = useState(false);
   const [pickerRange, setPickerRange] = useState(null); 
 
   const pickerRef = useRef(null);
 
+  // --- FIX 1: Change dependency from [note] to [note._id] ---
+  // This prevents the cover from reverting to the old value while you are editing the same note.
   useEffect(() => {
     if (note) {
         setTitle(note.title || "");
         setCover(note.coverImage || "");
     }
-  }, [note]);
+  }, [note._id]); 
 
-  // Click outside to close cover picker
   useEffect(() => {
     function handleClickOutside(event) {
       if (pickerRef.current && !pickerRef.current.contains(event.target)) {
@@ -120,15 +109,22 @@ const NoteEditor = ({ note, onUpdate, onDelete, onBack, allNotes, onNavigate }) 
     onUpdate({ ...note, title, content: editor.getHTML(), coverImage: "" });
   };
 
+  // --- FIX 2: Create a function for Adding Cover that also Saves ---
+  const handleAddCover = () => {
+    const defaultCover = COVERS[0]; // Pick the first cover
+    setCover(defaultCover);
+    setShowCoverPicker(true);
+    // Crucial: We must save this change immediately
+    onUpdate({ ...note, title, content: editor.getHTML(), coverImage: defaultCover });
+  };
+
   const handleTitleChange = (e) => {
     setTitle(e.target.value);
     onUpdate({ ...note, title: e.target.value, coverImage: cover, content: editor ? editor.getHTML() : "" });
   };
 
-  // --- Handle Note Selection from Picker ---
   const insertLinkedNote = (selectedNote) => {
     if (!editor) return;
-    
     const previewText = selectedNote.content.replace(/<[^>]+>/g, '').slice(0, 100) || "No preview";
 
     editor.chain().focus().insertContentAt(pickerRange, {
@@ -146,7 +142,6 @@ const NoteEditor = ({ note, onUpdate, onDelete, onBack, allNotes, onNavigate }) 
     setShowNotePicker(false);
   };
 
-  // --- TIPTAP CONFIG ---
   const getSlashItems = ({ query }) => {
     return [
       { title: 'Text', command: ({ editor, range }) => editor.chain().focus().deleteRange(range).setParagraph().run(), element: <span>Aa &nbsp; Text</span> },
@@ -156,7 +151,6 @@ const NoteEditor = ({ note, onUpdate, onDelete, onBack, allNotes, onNavigate }) 
       { title: 'Numbered List', command: ({ editor, range }) => editor.chain().focus().deleteRange(range).toggleOrderedList().run(), element: <span>1. &nbsp; Numbered List</span> },
       { title: 'Divider', command: ({ editor, range }) => editor.chain().focus().deleteRange(range).setHorizontalRule().run(), element: <span>— &nbsp; Divider</span> },
       { title: 'Code Block', command: ({ editor, range }) => editor.chain().focus().deleteRange(range).setCodeBlock().run(), element: <span>&lt;&gt; &nbsp; Code Block</span> },
-      // --- NEW COMMAND ---
       { 
         title: 'Link to Note', 
         command: ({ editor, range }) => {
@@ -235,10 +229,8 @@ const NoteEditor = ({ note, onUpdate, onDelete, onBack, allNotes, onNavigate }) 
   return (
     <div className="editor-shell" style={{ width: '100%', height: '100%' }}>
       
-      {/* ======================= COVER LOGIC ======================= */}
       <div className={`cover-image-container ${cover ? 'visible' : ''}`}>
         
-        {/* Render Logic: Supports Gradients, Hex Colors, and URLs */}
         {cover.startsWith('linear-gradient') || cover.startsWith('#') ? (
           <div className="cover-image" style={{ background: cover }} />
         ) : (
@@ -246,7 +238,7 @@ const NoteEditor = ({ note, onUpdate, onDelete, onBack, allNotes, onNavigate }) 
             src={cover} 
             alt="Cover" 
             className="cover-image" 
-            style={{ objectFit: 'cover', width: '100%', height: '100%' }} // Ensure image fits
+            style={{ objectFit: 'cover', width: '100%', height: '100%' }} 
           />
         )}
 
@@ -261,7 +253,6 @@ const NoteEditor = ({ note, onUpdate, onDelete, onBack, allNotes, onNavigate }) 
                     key={index} 
                     className="cover-option" 
                     onClick={() => handleCoverSelect(c)} 
-                    // Safe logic to determine if it is a URL or a CSS value
                     style={
                         c.startsWith('http') 
                         ? { backgroundImage: `url(${c})`, backgroundSize:'cover' } 
@@ -273,9 +264,7 @@ const NoteEditor = ({ note, onUpdate, onDelete, onBack, allNotes, onNavigate }) 
           )}
         </div>
       </div>
-      {/* ========================================================== */}
 
-      {/* --- NOTE PICKER MODAL --- */}
       {showNotePicker && (
         <NotePicker 
           notes={allNotes.filter(n => n._id !== note._id)} 
@@ -293,7 +282,7 @@ const NoteEditor = ({ note, onUpdate, onDelete, onBack, allNotes, onNavigate }) 
         </div>
 
         {!cover && (
-           <button className="add-cover-btn" onClick={() => {setShowCoverPicker(true); setCover(COVERS[0]);}}>
+           <button className="add-cover-btn" onClick={handleAddCover}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
             Add Cover
           </button>
