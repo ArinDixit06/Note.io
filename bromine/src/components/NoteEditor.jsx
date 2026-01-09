@@ -143,7 +143,7 @@ const NoteEditor = ({ note, onUpdate, onDelete, onBack, allNotes, onNavigate }) 
 
   return (
     <div className="editor-shell" style={{ width: '100%', height: '100%' }}>
-      <div className={`cover-image-container ${cover ? 'visible' : ''}`}>
+      <div className={`cover-image-container ${(cover || showCoverPicker) ? 'visible' : ''}`}>
         {cover && (
           cover.startsWith('linear-gradient') || cover.startsWith('#') ? (
             <div className="cover-image" style={{ background: cover }} />
