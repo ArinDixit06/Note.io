@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useEditor, EditorContent, ReactRenderer } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
-import { Extension } from '@tiptap/core'; 
+import { Extension } from '@tiptap/core';
 import { Table } from '@tiptap/extension-table';
 import { TableRow } from '@tiptap/extension-table-row';
 import { TableCell } from '@tiptap/extension-table-cell';
@@ -11,16 +11,34 @@ import { CodeBlock } from '@tiptap/extension-code-block';
 import { HorizontalRule } from '@tiptap/extension-horizontal-rule';
 import tippy from 'tippy.js';
 import 'tippy.js/dist/tippy.css';
-import SlashCommand from '../extensions/SlashCommand'; 
+import SlashCommand from '../extensions/SlashCommand';
 import SlashMenu from './SlashMenu';
 
 // --- NEW IMPORTS ---
 import NoteLink from '../extensions/NoteLink';
-import NotePicker from './NotePicker'; 
+import NotePicker from './NotePicker';
 
-// ... (Keep COVERS array) ...
+// =========================================
+// 1. EXPANDED & FIXED COVERS LIST
+// =========================================
 const COVERS = [
-  // --- GRADIENTS (12) ---
+  // --- SOLID COLORS (Classic & Modern) ---
+  "#E5E5E5", // Light Gray
+  "#FFD700", // Gold
+  "#FF6B6B", // Coral Red
+  "#4ECDC4", // Teal
+  "#1A535C", // Dark Cyan
+  "#F7FFF7", // Mint White
+  "#FFE66D", // Pastel Yellow
+  "#292F36", // Gunmetal
+  "#5F0F40", // Tyrian Purple
+  "#9A031E", // Ruby Red
+  "#FB8B24", // Dark Orange
+  "#3D348B", // Deep Indigo
+  "#7678ED", // Soft Purple
+  "#F18701", // Bright Tangerine
+
+  // --- GRADIENTS (Smooth & Vibrant) ---
   "linear-gradient(90deg, #ff9a9e 0%, #fecfef 99%, #fecfef 100%)",
   "linear-gradient(120deg, #a1c4fd 0%, #c2e9fb 100%)",
   "linear-gradient(120deg, #84fab0 0%, #8fd3f4 100%)",
@@ -33,63 +51,44 @@ const COVERS = [
   "linear-gradient(to right, #b8cbb8 0%, #b8cbb8 0%, #b465da 0%, #cf6cc9 33%, #ee609c 66%, #ee609c 100%)",
   "linear-gradient(to right, #6a11cb 0%, #2575fc 100%)",
   "linear-gradient(to top, #c471f5 0%, #fa71cd 100%)",
+  "linear-gradient(to right, #f83600 0%, #f9d423 100%)", // Fire
+  "linear-gradient(to top, #0ba360 0%, #3cba92 100%)",   // Emerald
 
-  // --- SOLID & MINIMAL (10) ---
-  "#FFD700", // Gold
-  "#FF6B6B", // Coral Red
-  "#4ECDC4", // Teal
-  "#1A535C", // Dark Cyan
-  "#F7FFF7", // Mint White
-  "#FFE66D", // Pastel Yellow
-  "#292F36", // Gunmetal
-  "#5F0F40", // Tyrian Purple
-  "#9A031E", // Ruby Red
-  "#FB8B24", // Dark Orange
-
-  // --- NATURE & LANDSCAPES (10) ---
+  // --- NATURE (High Quality Unsplash) ---
   "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1200&q=80", // Mountains
   "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&w=1200&q=80", // Foggy Forest
-  "https://images.unsplash.com/photo-1477346611705-65d1883cee1e?auto=format&fit=crop&w=1200&q=80", // Dark Mountain
-  "https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=1200&q=80", // Space/Earth
-  "https://images.unsplash.com/photo-1493246507139-91e8fad9978e?auto=format&fit=crop&w=1200&q=80", // Alpine Lake
-  "https://images.unsplash.com/photo-1511300636408-a63a6ad120de?auto=format&fit=crop&w=1200&q=80", // Winter Snow
-  "https://images.unsplash.com/photo-1469474932222-8d80f3d628e9?auto=format&fit=crop&w=1200&q=80", // Hiker/Hills
-  "https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&w=1200&q=80", // Lake & Boat
   "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&w=1200&q=80", // Sunlight Forest
-  "https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?auto=format&fit=crop&w=1200&q=80", // Forest Path
+  "https://images.unsplash.com/photo-1472214103451-9374bd1c798e?auto=format&fit=crop&w=1200&q=80", // Grass Field
+  "https://images.unsplash.com/photo-1465146344425-f00d5f5c8f07?auto=format&fit=crop&w=1200&q=80", // Dark Ocean
+  "https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&w=1200&q=80", // Lake & Boat
+  "https://images.unsplash.com/photo-1518173946687-a4c88928d9f0?auto=format&fit=crop&w=1200&q=80", // Sakura (Cherry Blossoms)
+  "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80", // Beach
+  
+  // --- SPACE & DARK (High Contrast) ---
+  "https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=1200&q=80", // Earth from Space
+  "https://images.unsplash.com/photo-1534796636912-3b95b3ab5986?auto=format&fit=crop&w=1200&q=80", // Starry Night
+  "https://images.unsplash.com/photo-1462331940025-496dfbfc7564?auto=format&fit=crop&w=1200&q=80", // Nebula
+  "https://images.unsplash.com/photo-1481026469463-66327c86e544?auto=format&fit=crop&w=1200&q=80", // Dark Room
 
-  // --- ABSTRACT & PATTERNS (10) ---
+  // --- ABSTRACT & TEXTURE ---
   "https://images.unsplash.com/photo-1550684848-fac1c5b4e853?auto=format&fit=crop&w=1200&q=80", // Liquid Purple
-  "https://images.unsplash.com/photo-1579546929518-9e396f3cc809?auto=format&fit=crop&w=1200&q=80", // Painted Gradient
-  "https://images.unsplash.com/photo-1558591710-4b4a1ae0f04d?auto=format&fit=crop&w=1200&q=80", // Geometric Lines
   "https://images.unsplash.com/photo-1541701494587-cb58502866ab?auto=format&fit=crop&w=1200&q=80", // Abstract Paint
-  "https://images.unsplash.com/photo-1502014822147-1aed80671e0a?auto=format&fit=crop&w=1200&q=80", // Minimal Plant Shadow
-  "https://images.unsplash.com/photo-1464618663641-bbdd760ae84a?auto=format&fit=crop&w=1200&q=80", // Abstract Wave
-  "https://images.unsplash.com/photo-1494438639946-1ebd1d20bf85?auto=format&fit=crop&w=1200&q=80", // Gold Texture
-  "https://images.unsplash.com/photo-1516541196185-394c23152581?auto=format&fit=crop&w=1200&q=80", // Oil Slick
+  "https://images.unsplash.com/photo-1558591710-4b4a1ae0f04d?auto=format&fit=crop&w=1200&q=80", // Geometric Lines
   "https://images.unsplash.com/photo-1508615039623-a25605d2b022?auto=format&fit=crop&w=1200&q=80", // Abstract Shapes
   "https://images.unsplash.com/photo-1534237710431-e2fc698436d0?auto=format&fit=crop&w=1200&q=80", // Building Detail
-
-  // --- ARCHITECTURE & INTERIORS (8) ---
-  "https://images.unsplash.com/photo-1481026469463-66327c86e544?auto=format&fit=crop&w=1200&q=80", // Dark Room
-  "https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1200&q=80", // Modern Office
-  "https://images.unsplash.com/photo-1497215728101-856f4ea42174?auto=format&fit=crop&w=1200&q=80", // Office Desk
+  "https://images.unsplash.com/photo-1497215728101-856f4ea42174?auto=format&fit=crop&w=1200&q=80", // Minimal Desk
+  "https://images.unsplash.com/photo-1494438639946-1ebd1d20bf85?auto=format&fit=crop&w=1200&q=80", // Gold Texture
   "https://images.unsplash.com/photo-1519710164239-da123dc03ef4?auto=format&fit=crop&w=1200&q=80", // Minimal Interior
-  "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1200&q=80", // Skyscrapers
-  "https://images.unsplash.com/photo-1465146344425-f00d5f5c8f07?auto=format&fit=crop&w=1200&q=80", // Dark Ocean
-  "https://images.unsplash.com/photo-1518837695005-2083093ee35b?auto=format&fit=crop&w=1200&q=80", // Water Reflection
-  "https://images.unsplash.com/photo-1472214103451-9374bd1c798e?auto=format&fit=crop&w=1200&q=80", // Grass Field
 ];
 
-// Add `allNotes` and `onNavigate` props
 const NoteEditor = ({ note, onUpdate, onDelete, onBack, allNotes, onNavigate }) => {
   const [title, setTitle] = useState(note.title || "");
   const [cover, setCover] = useState(note.coverImage || "");
   const [showCoverPicker, setShowCoverPicker] = useState(false);
-  
-  // --- NEW STATE FOR NOTE PICKER ---
+   
+  // --- STATE FOR NOTE PICKER ---
   const [showNotePicker, setShowNotePicker] = useState(false);
-  const [pickerRange, setPickerRange] = useState(null); // To know where to insert
+  const [pickerRange, setPickerRange] = useState(null); 
 
   const pickerRef = useRef(null);
 
@@ -100,7 +99,16 @@ const NoteEditor = ({ note, onUpdate, onDelete, onBack, allNotes, onNavigate }) 
     }
   }, [note]);
 
-  // ... (Keep click outside useEffect) ...
+  // Click outside to close cover picker
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (pickerRef.current && !pickerRef.current.contains(event.target)) {
+        setShowCoverPicker(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [pickerRef]);
 
   const handleCoverSelect = (selectedCover) => {
     setCover(selectedCover);
@@ -118,14 +126,12 @@ const NoteEditor = ({ note, onUpdate, onDelete, onBack, allNotes, onNavigate }) 
     onUpdate({ ...note, title: e.target.value, coverImage: cover, content: editor ? editor.getHTML() : "" });
   };
 
-  // --- NEW: Handle Note Selection from Picker ---
+  // --- Handle Note Selection from Picker ---
   const insertLinkedNote = (selectedNote) => {
     if (!editor) return;
     
-    // Prepare preview text
     const previewText = selectedNote.content.replace(/<[^>]+>/g, '').slice(0, 100) || "No preview";
 
-    // Insert the custom node
     editor.chain().focus().insertContentAt(pickerRange, {
       type: 'noteLink',
       attrs: {
@@ -134,7 +140,7 @@ const NoteEditor = ({ note, onUpdate, onDelete, onBack, allNotes, onNavigate }) 
         cover: selectedNote.coverImage,
         preview: previewText,
         createdAt: selectedNote.createdAt,
-        viewMode: 'card' // Default to card view
+        viewMode: 'card'
       }
     }).run();
 
@@ -155,9 +161,7 @@ const NoteEditor = ({ note, onUpdate, onDelete, onBack, allNotes, onNavigate }) 
       { 
         title: 'Link to Note', 
         command: ({ editor, range }) => {
-          // Delete the slash command text
           editor.chain().focus().deleteRange(range).run();
-          // Open the picker
           setPickerRange(range.from);
           setShowNotePicker(true);
         }, 
@@ -166,7 +170,7 @@ const NoteEditor = ({ note, onUpdate, onDelete, onBack, allNotes, onNavigate }) 
     ].filter(item => item.title.toLowerCase().includes(query.toLowerCase()));
   };
 
-  const renderSlashMenu = () => { /* ... Keep Existing ... */
+  const renderSlashMenu = () => {
     let component;
     let popup;
     return {
@@ -196,7 +200,7 @@ const NoteEditor = ({ note, onUpdate, onDelete, onBack, allNotes, onNavigate }) 
     };
   };
 
-  const CustomKeymap = Extension.create({ /* ... Keep Existing ... */
+  const CustomKeymap = Extension.create({
     name: 'customKeymap',
     priority: 1000, 
     addKeyboardShortcuts() {
@@ -215,7 +219,6 @@ const NoteEditor = ({ note, onUpdate, onDelete, onBack, allNotes, onNavigate }) 
       HorizontalRule, Table.configure({ resizable: true }), TableRow, TableHeader, TableCell,
       CodeBlock, SlashCommand.configure({ suggestion: { items: getSlashItems, render: renderSlashMenu } }),
       CustomKeymap, 
-      // --- NEW EXTENSION ---
       NoteLink.configure({
         onNavigate: (noteId) => {
            if (onNavigate) onNavigate(noteId);
@@ -228,44 +231,61 @@ const NoteEditor = ({ note, onUpdate, onDelete, onBack, allNotes, onNavigate }) 
     },
   });
 
-  // ... (Keep existing useEffects) ...
-
   if (!editor) return null;
 
   return (
     <div className="editor-shell" style={{ width: '100%', height: '100%' }}>
-      {/* ... (Keep Cover Logic) ... */}
+      
+      {/* ======================= COVER LOGIC ======================= */}
       <div className={`cover-image-container ${cover ? 'visible' : ''}`}>
-         {/* ... (Keep Cover Render) ... */}
-         {cover.startsWith('linear-gradient') || cover.startsWith('#') ? (
+        
+        {/* Render Logic: Supports Gradients, Hex Colors, and URLs */}
+        {cover.startsWith('linear-gradient') || cover.startsWith('#') ? (
           <div className="cover-image" style={{ background: cover }} />
         ) : (
-          <img src={cover} alt="Cover" className="cover-image" />
+          <img 
+            src={cover} 
+            alt="Cover" 
+            className="cover-image" 
+            style={{ objectFit: 'cover', width: '100%', height: '100%' }} // Ensure image fits
+          />
         )}
+
         <div className="cover-controls" ref={pickerRef}>
           <button className="cover-btn" onClick={() => setShowCoverPicker(!showCoverPicker)}>Change Cover</button>
           <button className="cover-btn remove-btn" onClick={removeCover}>Remove</button>
+          
           {showCoverPicker && (
             <div className="cover-picker-menu">
               {COVERS.map((c, index) => (
-                 <div key={index} className="cover-option" onClick={() => handleCoverSelect(c)} style={c.startsWith('http') ? {backgroundImage: `url(${c})`, backgroundSize:'cover'} : {background: c}} />
+                 <div 
+                    key={index} 
+                    className="cover-option" 
+                    onClick={() => handleCoverSelect(c)} 
+                    // Safe logic to determine if it is a URL or a CSS value
+                    style={
+                        c.startsWith('http') 
+                        ? { backgroundImage: `url(${c})`, backgroundSize:'cover' } 
+                        : { background: c }
+                    } 
+                 />
               ))}
             </div>
           )}
         </div>
       </div>
+      {/* ========================================================== */}
 
-      {/* --- NEW: NOTE PICKER MODAL --- */}
+      {/* --- NOTE PICKER MODAL --- */}
       {showNotePicker && (
         <NotePicker 
-          notes={allNotes.filter(n => n._id !== note._id)} // Don't link to self
+          notes={allNotes.filter(n => n._id !== note._id)} 
           onClose={() => setShowNotePicker(false)}
           onSelect={insertLinkedNote}
         />
       )}
 
       <div className="editor-container">
-        {/* ... (Keep Header) ... */}
          <div className="editor-header">
           <button onClick={onBack} className="secondary-btn">← Back</button>
           <div className="editor-actions">
