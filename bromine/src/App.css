@@ -483,7 +483,7 @@ body::before {
   font-size: 40px !important;  /* Force large text */
   font-weight: 700 !important; /* Force bold */
   line-height: 1.2;            /* Better spacing for multi-line titles */
-  color: #2e2e2e;              /* Dark grey/black */
+  color: #FFFFFF;              /* Dark grey/black */
   font-family: inherit;        /* Keeps your app's font family */
 
   /* --- STRUCTURE --- */
