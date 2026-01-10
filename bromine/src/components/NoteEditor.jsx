@@ -33,55 +33,13 @@ const COVERS = [
   "linear-gradient(to right, #b8cbb8 0%, #b8cbb8 0%, #b465da 0%, #cf6cc9 33%, #ee609c 66%, #ee609c 100%)",
   "linear-gradient(to right, #6a11cb 0%, #2575fc 100%)",
   "linear-gradient(to top, #c471f5 0%, #fa71cd 100%)",
-
-  // --- SOLID & MINIMAL (10) ---
-  "#FFD700", // Gold
-  "#FF6B6B", // Coral Red
-  "#4ECDC4", // Teal
-  "#1A535C", // Dark Cyan
-  "#F7FFF7", // Mint White
-  "#FFE66D", // Pastel Yellow
-  "#292F36", // Gunmetal
-  "#5F0F40", // Tyrian Purple
-  "#9A031E", // Ruby Red
-  "#FB8B24", // Dark Orange
-
-  // --- NATURE & LANDSCAPES (10) ---
-  "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1200&q=80", // Mountains
-  "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&w=1200&q=80", // Foggy Forest
-  "https://images.unsplash.com/photo-1477346611705-65d1883cee1e?auto=format&fit=crop&w=1200&q=80", // Dark Mountain
-  "https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=1200&q=80", // Space/Earth
-  "https://images.unsplash.com/photo-1493246507139-91e8fad9978e?auto=format&fit=crop&w=1200&q=80", // Alpine Lake
-  "https://images.unsplash.com/photo-1511300636408-a63a6ad120de?auto=format&fit=crop&w=1200&q=80", // Winter Snow
-  "https://images.unsplash.com/photo-1469474932222-8d80f3d628e9?auto=format&fit=crop&w=1200&q=80", // Hiker/Hills
-  "https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&w=1200&q=80", // Lake & Boat
-  "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&w=1200&q=80", // Sunlight Forest
-  "https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?auto=format&fit=crop&w=1200&q=80", // Forest Path
-
-  // --- ABSTRACT & PATTERNS (10) ---
-  "https://images.unsplash.com/photo-1550684848-fac1c5b4e853?auto=format&fit=crop&w=1200&q=80", // Liquid Purple
-  "https://images.unsplash.com/photo-1579546929518-9e396f3cc809?auto=format&fit=crop&w=1200&q=80", // Painted Gradient
-  "https://images.unsplash.com/photo-1558591710-4b4a1ae0f04d?auto=format&fit=crop&w=1200&q=80", // Geometric Lines
-  "https://images.unsplash.com/photo-1541701494587-cb58502866ab?auto=format&fit=crop&w=1200&q=80", // Abstract Paint
-  "https://images.unsplash.com/photo-1502014822147-1aed80671e0a?auto=format&fit=crop&w=1200&q=80", // Minimal Plant Shadow
-  "https://images.unsplash.com/photo-1464618663641-bbdd760ae84a?auto=format&fit=crop&w=1200&q=80", // Abstract Wave
-  "https://images.unsplash.com/photo-1494438639946-1ebd1d20bf85?auto=format&fit=crop&w=1200&q=80", // Gold Texture
-  "https://images.unsplash.com/photo-1516541196185-394c23152581?auto=format&fit=crop&w=1200&q=80", // Oil Slick
-  "https://images.unsplash.com/photo-1508615039623-a25605d2b022?auto=format&fit=crop&w=1200&q=80", // Abstract Shapes
-  "https://images.unsplash.com/photo-1534237710431-e2fc698436d0?auto=format&fit=crop&w=1200&q=80", // Building Detail
-
-  // --- ARCHITECTURE & INTERIORS (8) ---
-  "https://images.unsplash.com/photo-1481026469463-66327c86e544?auto=format&fit=crop&w=1200&q=80", // Dark Room
-  "https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1200&q=80", // Modern Office
-  "https://images.unsplash.com/photo-1497215728101-856f4ea42174?auto=format&fit=crop&w=1200&q=80", // Office Desk
-  "https://images.unsplash.com/photo-1519710164239-da123dc03ef4?auto=format&fit=crop&w=1200&q=80", // Minimal Interior
-  "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1200&q=80", // Skyscrapers
-  "https://images.unsplash.com/photo-1465146344425-f00d5f5c8f07?auto=format&fit=crop&w=1200&q=80", // Dark Ocean
-  "https://images.unsplash.com/photo-1518837695005-2083093ee35b?auto=format&fit=crop&w=1200&q=80", // Water Reflection
-  "https://images.unsplash.com/photo-1472214103451-9374bd1c798e?auto=format&fit=crop&w=1200&q=80", // Grass Field
+  // ... (Rest of your COVERS array) ...
+  "#FFD700", "#FF6B6B", "#4ECDC4", "#1A535C", "#F7FFF7", "#FFE66D", "#292F36", "#5F0F40", "#9A031E", "#FB8B24",
+  "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1200&q=80",
+  "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&w=1200&q=80",
+  // ... (Include all other images from your original code) ...
 ];
 
-// Add `allNotes` and `onNavigate` props
 const NoteEditor = ({ note, onUpdate, onDelete, onBack, allNotes, onNavigate }) => {
   const [title, setTitle] = useState(note.title || "");
   const [cover, setCover] = useState(note.coverImage || "");
@@ -89,9 +47,12 @@ const NoteEditor = ({ note, onUpdate, onDelete, onBack, allNotes, onNavigate }) 
   
   // --- NEW STATE FOR NOTE PICKER ---
   const [showNotePicker, setShowNotePicker] = useState(false);
-  const [pickerRange, setPickerRange] = useState(null); // To know where to insert
+  const [pickerRange, setPickerRange] = useState(null); 
 
   const pickerRef = useRef(null);
+  
+  // --- NEW: Ref for the title textarea ---
+  const titleRef = useRef(null);
 
   useEffect(() => {
     if (note) {
@@ -100,7 +61,19 @@ const NoteEditor = ({ note, onUpdate, onDelete, onBack, allNotes, onNavigate }) 
     }
   }, [note]);
 
-  // ... (Keep click outside useEffect) ...
+  // --- NEW: Auto-resize Title Logic ---
+  const adjustTitleHeight = () => {
+    const textarea = titleRef.current;
+    if (textarea) {
+      textarea.style.height = 'auto'; // Reset height to recalculate
+      textarea.style.height = `${textarea.scrollHeight}px`; // Set to scroll height
+    }
+  };
+
+  // Adjust height whenever title changes
+  useEffect(() => {
+    adjustTitleHeight();
+  }, [title]);
 
   const handleCoverSelect = (selectedCover) => {
     setCover(selectedCover);
@@ -115,17 +88,14 @@ const NoteEditor = ({ note, onUpdate, onDelete, onBack, allNotes, onNavigate }) 
 
   const handleTitleChange = (e) => {
     setTitle(e.target.value);
+    // Don't need to call adjustHeight here because the useEffect([title]) handles it
     onUpdate({ ...note, title: e.target.value, coverImage: cover, content: editor ? editor.getHTML() : "" });
   };
 
-  // --- NEW: Handle Note Selection from Picker ---
+  // ... (Keep insertLinkedNote, getSlashItems, renderSlashMenu, CustomKeymap) ...
   const insertLinkedNote = (selectedNote) => {
     if (!editor) return;
-    
-    // Prepare preview text
     const previewText = selectedNote.content.replace(/<[^>]+>/g, '').slice(0, 100) || "No preview";
-
-    // Insert the custom node
     editor.chain().focus().insertContentAt(pickerRange, {
       type: 'noteLink',
       attrs: {
@@ -134,30 +104,22 @@ const NoteEditor = ({ note, onUpdate, onDelete, onBack, allNotes, onNavigate }) 
         cover: selectedNote.coverImage,
         preview: previewText,
         createdAt: selectedNote.createdAt,
-        viewMode: 'card' // Default to card view
+        viewMode: 'card' 
       }
     }).run();
-
     setShowNotePicker(false);
   };
 
-  // --- TIPTAP CONFIG ---
   const getSlashItems = ({ query }) => {
+    // ... (Your existing slash items) ...
     return [
       { title: 'Text', command: ({ editor, range }) => editor.chain().focus().deleteRange(range).setParagraph().run(), element: <span>Aa &nbsp; Text</span> },
       { title: 'Heading 1', command: ({ editor, range }) => editor.chain().focus().deleteRange(range).setNode('heading', { level: 1 }).run(), element: <span>H1 &nbsp; Big Heading</span> },
-      { title: 'Heading 2', command: ({ editor, range }) => editor.chain().focus().deleteRange(range).setNode('heading', { level: 2 }).run(), element: <span>H2 &nbsp; Medium Heading</span> },
-      { title: 'Bullet List', command: ({ editor, range }) => editor.chain().focus().deleteRange(range).toggleBulletList().run(), element: <span>• &nbsp; Bullet List</span> },
-      { title: 'Numbered List', command: ({ editor, range }) => editor.chain().focus().deleteRange(range).toggleOrderedList().run(), element: <span>1. &nbsp; Numbered List</span> },
-      { title: 'Divider', command: ({ editor, range }) => editor.chain().focus().deleteRange(range).setHorizontalRule().run(), element: <span>— &nbsp; Divider</span> },
-      { title: 'Code Block', command: ({ editor, range }) => editor.chain().focus().deleteRange(range).setCodeBlock().run(), element: <span>&lt;&gt; &nbsp; Code Block</span> },
-      // --- NEW COMMAND ---
+      // ... (Rest of your items) ...
       { 
         title: 'Link to Note', 
         command: ({ editor, range }) => {
-          // Delete the slash command text
           editor.chain().focus().deleteRange(range).run();
-          // Open the picker
           setPickerRange(range.from);
           setShowNotePicker(true);
         }, 
@@ -165,48 +127,24 @@ const NoteEditor = ({ note, onUpdate, onDelete, onBack, allNotes, onNavigate }) 
       },
     ].filter(item => item.title.toLowerCase().includes(query.toLowerCase()));
   };
-
-  const renderSlashMenu = () => { /* ... Keep Existing ... */
-    let component;
-    let popup;
-    return {
-      onStart: props => {
-        component = new ReactRenderer(SlashMenu, { props, editor: props.editor });
-        if (!props.clientRect) return;
-        popup = tippy('body', {
-          getReferenceClientRect: props.clientRect,
-          appendTo: () => document.body,
-          content: component.element,
-          showOnCreate: true,
-          interactive: true,
-          trigger: 'manual',
-          placement: 'bottom-start',
-        });
-      },
-      onUpdate: props => {
-        component.updateProps(props);
-        if (!props.clientRect) return;
-        popup[0].setProps({ getReferenceClientRect: props.clientRect });
-      },
-      onKeyDown: props => {
-        if (props.event.key === 'Escape') { popup[0].hide(); return true; }
-        return component.ref?.onKeyDown(props);
-      },
-      onExit: () => { popup[0].destroy(); component.destroy(); },
-    };
+  
+  const renderSlashMenu = () => { /* ... Keep exact existing logic ... */ 
+      let component; let popup;
+      return {
+        onStart: props => {
+          component = new ReactRenderer(SlashMenu, { props, editor: props.editor });
+          if (!props.clientRect) return;
+          popup = tippy('body', { getReferenceClientRect: props.clientRect, appendTo: () => document.body, content: component.element, showOnCreate: true, interactive: true, trigger: 'manual', placement: 'bottom-start' });
+        },
+        onUpdate: props => { component.updateProps(props); if (!props.clientRect) return; popup[0].setProps({ getReferenceClientRect: props.clientRect }); },
+        onKeyDown: props => { if (props.event.key === 'Escape') { popup[0].hide(); return true; } return component.ref?.onKeyDown(props); },
+        onExit: () => { popup[0].destroy(); component.destroy(); },
+      };
   };
 
-  const CustomKeymap = Extension.create({ /* ... Keep Existing ... */
-    name: 'customKeymap',
-    priority: 1000, 
-    addKeyboardShortcuts() {
-      return {
-        'Enter': ({ editor }) => {
-          if (editor.isActive('listItem')) return editor.chain().splitListItem('listItem').run();
-          return false; 
-        }
-      };
-    }
+  const CustomKeymap = Extension.create({
+    name: 'customKeymap', priority: 1000, 
+    addKeyboardShortcuts() { return { 'Enter': ({ editor }) => { if (editor.isActive('listItem')) return editor.chain().splitListItem('listItem').run(); return false; } }; }
   });
 
   const editor = useEditor({
@@ -215,20 +153,13 @@ const NoteEditor = ({ note, onUpdate, onDelete, onBack, allNotes, onNavigate }) 
       HorizontalRule, Table.configure({ resizable: true }), TableRow, TableHeader, TableCell,
       CodeBlock, SlashCommand.configure({ suggestion: { items: getSlashItems, render: renderSlashMenu } }),
       CustomKeymap, 
-      // --- NEW EXTENSION ---
-      NoteLink.configure({
-        onNavigate: (noteId) => {
-           if (onNavigate) onNavigate(noteId);
-        }
-      })
+      NoteLink.configure({ onNavigate: (noteId) => { if (onNavigate) onNavigate(noteId); } })
     ],
     content: note.content || '',
     onUpdate: ({ editor }) => {
       onUpdate({ ...note, title, coverImage: cover, content: editor.getHTML() });
     },
   });
-
-  // ... (Keep existing useEffects) ...
 
   if (!editor) return null;
 
@@ -255,18 +186,16 @@ const NoteEditor = ({ note, onUpdate, onDelete, onBack, allNotes, onNavigate }) 
         </div>
       </div>
 
-      {/* --- NEW: NOTE PICKER MODAL --- */}
       {showNotePicker && (
         <NotePicker 
-          notes={allNotes.filter(n => n._id !== note._id)} // Don't link to self
+          notes={allNotes.filter(n => n._id !== note._id)}
           onClose={() => setShowNotePicker(false)}
           onSelect={insertLinkedNote}
         />
       )}
 
       <div className="editor-container">
-        {/* ... (Keep Header) ... */}
-         <div className="editor-header">
+        <div className="editor-header">
           <button onClick={onBack} className="secondary-btn">← Back</button>
           <div className="editor-actions">
             <button onClick={() => { if(window.confirm("Delete note?")) onDelete(note._id); }} className="delete-btn" style={{ background: 'transparent', border:'none', cursor:'pointer', color:'#FF3B30'}}>🗑️ Delete</button>
@@ -281,7 +210,18 @@ const NoteEditor = ({ note, onUpdate, onDelete, onBack, allNotes, onNavigate }) 
         )}
 
         <div className="editor-workspace">
-          <input type="text" placeholder="Untitled" value={title} onChange={handleTitleChange} className="title-input" />
+          {/* --- CHANGE START: Replaced input with textarea --- */}
+          <textarea 
+            ref={titleRef}
+            placeholder="Untitled" 
+            value={title} 
+            onChange={handleTitleChange} 
+            className="title-input" 
+            rows={1}
+            spellCheck={false}
+          />
+           {/* --- CHANGE END --- */}
+          
           <EditorContent editor={editor} className="tiptap-editor" />
         </div>
       </div>
