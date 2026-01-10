@@ -478,3 +478,26 @@ body::before {
 .cover-image-container:hover .cover-controls { opacity: 1; }
 .cover-btn { color: #ccc; }
 .cover-btn:hover { background: rgba(255,255,255,0.1); color: white; }
+.title-input {
+  width: 100%;
+  
+  /* --- KEY PROPERTIES FOR TEXTAREA BEHAVIOR --- */
+  resize: none;      /* Removes the drag handle */
+  overflow: hidden;  /* Hides scrollbars */
+  background: transparent;
+  border: none;
+  outline: none;
+  
+  /* --- KEY PROPERTIES TO KEEP YOUR OLD STYLE --- */
+  font-family: inherit; /* Uses your app's font */
+  font-size: inherit;   /* Uses your previously defined size */
+  font-weight: inherit; /* Uses your previously defined weight */
+  color: inherit;
+  
+  /* Reset padding to prevent offset */
+  padding: 0; 
+  margin: 0;
+  
+  /* Optional: Ensure line height is comfortable for wrapping */
+  line-height: 1.2; 
+}
