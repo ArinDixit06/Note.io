@@ -14,13 +14,11 @@ import 'tippy.js/dist/tippy.css';
 import SlashCommand from '../extensions/SlashCommand'; 
 import SlashMenu from './SlashMenu';
 
-// --- NEW IMPORTS ---
 import NoteLink from '../extensions/NoteLink';
 import NotePicker from './NotePicker'; 
 
-// ... (Keep COVERS array) ...
+// ... (Keep COVERS array exactly as it was) ...
 const COVERS = [
-  // --- GRADIENTS (12) ---
   "linear-gradient(90deg, #ff9a9e 0%, #fecfef 99%, #fecfef 100%)",
   "linear-gradient(120deg, #a1c4fd 0%, #c2e9fb 100%)",
   "linear-gradient(120deg, #84fab0 0%, #8fd3f4 100%)",
@@ -33,11 +31,35 @@ const COVERS = [
   "linear-gradient(to right, #b8cbb8 0%, #b8cbb8 0%, #b465da 0%, #cf6cc9 33%, #ee609c 66%, #ee609c 100%)",
   "linear-gradient(to right, #6a11cb 0%, #2575fc 100%)",
   "linear-gradient(to top, #c471f5 0%, #fa71cd 100%)",
-  // ... (Rest of your COVERS array) ...
   "#FFD700", "#FF6B6B", "#4ECDC4", "#1A535C", "#F7FFF7", "#FFE66D", "#292F36", "#5F0F40", "#9A031E", "#FB8B24",
   "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1200&q=80",
   "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&w=1200&q=80",
-  // ... (Include all other images from your original code) ...
+  "https://images.unsplash.com/photo-1477346611705-65d1883cee1e?auto=format&fit=crop&w=1200&q=80",
+  "https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=1200&q=80",
+  "https://images.unsplash.com/photo-1493246507139-91e8fad9978e?auto=format&fit=crop&w=1200&q=80",
+  "https://images.unsplash.com/photo-1511300636408-a63a6ad120de?auto=format&fit=crop&w=1200&q=80",
+  "https://images.unsplash.com/photo-1469474932222-8d80f3d628e9?auto=format&fit=crop&w=1200&q=80",
+  "https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&w=1200&q=80",
+  "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&w=1200&q=80",
+  "https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?auto=format&fit=crop&w=1200&q=80",
+  "https://images.unsplash.com/photo-1550684848-fac1c5b4e853?auto=format&fit=crop&w=1200&q=80",
+  "https://images.unsplash.com/photo-1579546929518-9e396f3cc809?auto=format&fit=crop&w=1200&q=80",
+  "https://images.unsplash.com/photo-1558591710-4b4a1ae0f04d?auto=format&fit=crop&w=1200&q=80",
+  "https://images.unsplash.com/photo-1541701494587-cb58502866ab?auto=format&fit=crop&w=1200&q=80",
+  "https://images.unsplash.com/photo-1502014822147-1aed80671e0a?auto=format&fit=crop&w=1200&q=80",
+  "https://images.unsplash.com/photo-1464618663641-bbdd760ae84a?auto=format&fit=crop&w=1200&q=80",
+  "https://images.unsplash.com/photo-1494438639946-1ebd1d20bf85?auto=format&fit=crop&w=1200&q=80",
+  "https://images.unsplash.com/photo-1516541196185-394c23152581?auto=format&fit=crop&w=1200&q=80",
+  "https://images.unsplash.com/photo-1508615039623-a25605d2b022?auto=format&fit=crop&w=1200&q=80",
+  "https://images.unsplash.com/photo-1534237710431-e2fc698436d0?auto=format&fit=crop&w=1200&q=80",
+  "https://images.unsplash.com/photo-1481026469463-66327c86e544?auto=format&fit=crop&w=1200&q=80",
+  "https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1200&q=80",
+  "https://images.unsplash.com/photo-1497215728101-856f4ea42174?auto=format&fit=crop&w=1200&q=80",
+  "https://images.unsplash.com/photo-1519710164239-da123dc03ef4?auto=format&fit=crop&w=1200&q=80",
+  "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1200&q=80",
+  "https://images.unsplash.com/photo-1465146344425-f00d5f5c8f07?auto=format&fit=crop&w=1200&q=80",
+  "https://images.unsplash.com/photo-1518837695005-2083093ee35b?auto=format&fit=crop&w=1200&q=80",
+  "https://images.unsplash.com/photo-1472214103451-9374bd1c798e?auto=format&fit=crop&w=1200&q=80",
 ];
 
 const NoteEditor = ({ note, onUpdate, onDelete, onBack, allNotes, onNavigate }) => {
@@ -45,14 +67,11 @@ const NoteEditor = ({ note, onUpdate, onDelete, onBack, allNotes, onNavigate }) 
   const [cover, setCover] = useState(note.coverImage || "");
   const [showCoverPicker, setShowCoverPicker] = useState(false);
   
-  // --- NEW STATE FOR NOTE PICKER ---
   const [showNotePicker, setShowNotePicker] = useState(false);
   const [pickerRange, setPickerRange] = useState(null); 
 
   const pickerRef = useRef(null);
-  
-  // --- NEW: Ref for the title textarea ---
-  const titleRef = useRef(null);
+  const titleRef = useRef(null); // Ref for textarea
 
   useEffect(() => {
     if (note) {
@@ -61,16 +80,15 @@ const NoteEditor = ({ note, onUpdate, onDelete, onBack, allNotes, onNavigate }) 
     }
   }, [note]);
 
-  // --- NEW: Auto-resize Title Logic ---
+  // --- Auto-resize logic ---
   const adjustTitleHeight = () => {
     const textarea = titleRef.current;
     if (textarea) {
-      textarea.style.height = 'auto'; // Reset height to recalculate
-      textarea.style.height = `${textarea.scrollHeight}px`; // Set to scroll height
+      textarea.style.height = 'auto'; 
+      textarea.style.height = `${textarea.scrollHeight}px`; 
     }
   };
 
-  // Adjust height whenever title changes
   useEffect(() => {
     adjustTitleHeight();
   }, [title]);
@@ -88,11 +106,9 @@ const NoteEditor = ({ note, onUpdate, onDelete, onBack, allNotes, onNavigate }) 
 
   const handleTitleChange = (e) => {
     setTitle(e.target.value);
-    // Don't need to call adjustHeight here because the useEffect([title]) handles it
     onUpdate({ ...note, title: e.target.value, coverImage: cover, content: editor ? editor.getHTML() : "" });
   };
 
-  // ... (Keep insertLinkedNote, getSlashItems, renderSlashMenu, CustomKeymap) ...
   const insertLinkedNote = (selectedNote) => {
     if (!editor) return;
     const previewText = selectedNote.content.replace(/<[^>]+>/g, '').slice(0, 100) || "No preview";
@@ -111,11 +127,14 @@ const NoteEditor = ({ note, onUpdate, onDelete, onBack, allNotes, onNavigate }) 
   };
 
   const getSlashItems = ({ query }) => {
-    // ... (Your existing slash items) ...
     return [
       { title: 'Text', command: ({ editor, range }) => editor.chain().focus().deleteRange(range).setParagraph().run(), element: <span>Aa &nbsp; Text</span> },
       { title: 'Heading 1', command: ({ editor, range }) => editor.chain().focus().deleteRange(range).setNode('heading', { level: 1 }).run(), element: <span>H1 &nbsp; Big Heading</span> },
-      // ... (Rest of your items) ...
+      { title: 'Heading 2', command: ({ editor, range }) => editor.chain().focus().deleteRange(range).setNode('heading', { level: 2 }).run(), element: <span>H2 &nbsp; Medium Heading</span> },
+      { title: 'Bullet List', command: ({ editor, range }) => editor.chain().focus().deleteRange(range).toggleBulletList().run(), element: <span>• &nbsp; Bullet List</span> },
+      { title: 'Numbered List', command: ({ editor, range }) => editor.chain().focus().deleteRange(range).toggleOrderedList().run(), element: <span>1. &nbsp; Numbered List</span> },
+      { title: 'Divider', command: ({ editor, range }) => editor.chain().focus().deleteRange(range).setHorizontalRule().run(), element: <span>— &nbsp; Divider</span> },
+      { title: 'Code Block', command: ({ editor, range }) => editor.chain().focus().deleteRange(range).setCodeBlock().run(), element: <span>&lt;&gt; &nbsp; Code Block</span> },
       { 
         title: 'Link to Note', 
         command: ({ editor, range }) => {
@@ -127,19 +146,19 @@ const NoteEditor = ({ note, onUpdate, onDelete, onBack, allNotes, onNavigate }) 
       },
     ].filter(item => item.title.toLowerCase().includes(query.toLowerCase()));
   };
-  
-  const renderSlashMenu = () => { /* ... Keep exact existing logic ... */ 
-      let component; let popup;
-      return {
-        onStart: props => {
-          component = new ReactRenderer(SlashMenu, { props, editor: props.editor });
-          if (!props.clientRect) return;
-          popup = tippy('body', { getReferenceClientRect: props.clientRect, appendTo: () => document.body, content: component.element, showOnCreate: true, interactive: true, trigger: 'manual', placement: 'bottom-start' });
-        },
-        onUpdate: props => { component.updateProps(props); if (!props.clientRect) return; popup[0].setProps({ getReferenceClientRect: props.clientRect }); },
-        onKeyDown: props => { if (props.event.key === 'Escape') { popup[0].hide(); return true; } return component.ref?.onKeyDown(props); },
-        onExit: () => { popup[0].destroy(); component.destroy(); },
-      };
+
+  const renderSlashMenu = () => {
+    let component; let popup;
+    return {
+      onStart: props => {
+        component = new ReactRenderer(SlashMenu, { props, editor: props.editor });
+        if (!props.clientRect) return;
+        popup = tippy('body', { getReferenceClientRect: props.clientRect, appendTo: () => document.body, content: component.element, showOnCreate: true, interactive: true, trigger: 'manual', placement: 'bottom-start' });
+      },
+      onUpdate: props => { component.updateProps(props); if (!props.clientRect) return; popup[0].setProps({ getReferenceClientRect: props.clientRect }); },
+      onKeyDown: props => { if (props.event.key === 'Escape') { popup[0].hide(); return true; } return component.ref?.onKeyDown(props); },
+      onExit: () => { popup[0].destroy(); component.destroy(); },
+    };
   };
 
   const CustomKeymap = Extension.create({
@@ -165,9 +184,7 @@ const NoteEditor = ({ note, onUpdate, onDelete, onBack, allNotes, onNavigate }) 
 
   return (
     <div className="editor-shell" style={{ width: '100%', height: '100%' }}>
-      {/* ... (Keep Cover Logic) ... */}
       <div className={`cover-image-container ${cover ? 'visible' : ''}`}>
-         {/* ... (Keep Cover Render) ... */}
          {cover.startsWith('linear-gradient') || cover.startsWith('#') ? (
           <div className="cover-image" style={{ background: cover }} />
         ) : (
@@ -210,7 +227,7 @@ const NoteEditor = ({ note, onUpdate, onDelete, onBack, allNotes, onNavigate }) 
         )}
 
         <div className="editor-workspace">
-          {/* --- CHANGE START: Replaced input with textarea --- */}
+          {/* --- UPDATED: Textarea with auto-resize --- */}
           <textarea 
             ref={titleRef}
             placeholder="Untitled" 
@@ -220,7 +237,6 @@ const NoteEditor = ({ note, onUpdate, onDelete, onBack, allNotes, onNavigate }) 
             rows={1}
             spellCheck={false}
           />
-           {/* --- CHANGE END --- */}
           
           <EditorContent editor={editor} className="tiptap-editor" />
         </div>
