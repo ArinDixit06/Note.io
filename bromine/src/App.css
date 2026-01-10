@@ -479,25 +479,25 @@ body::before {
 .cover-btn { color: #ccc; }
 .cover-btn:hover { background: rgba(255,255,255,0.1); color: white; }
 .title-input {
+  /* --- TYPOGRAPHY FIXES --- */
+  font-size: 40px !important;  /* Force large text */
+  font-weight: 700 !important; /* Force bold */
+  line-height: 1.2;            /* Better spacing for multi-line titles */
+  color: #2e2e2e;              /* Dark grey/black */
+  font-family: inherit;        /* Keeps your app's font family */
+
+  /* --- STRUCTURE --- */
   width: 100%;
-  
-  /* --- KEY PROPERTIES FOR TEXTAREA BEHAVIOR --- */
-  resize: none;      /* Removes the drag handle */
-  overflow: hidden;  /* Hides scrollbars */
+  resize: none;      /* Removes drag handle */
+  overflow: hidden;  /* Hides scrollbar */
   background: transparent;
   border: none;
   outline: none;
-  
-  /* --- KEY PROPERTIES TO KEEP YOUR OLD STYLE --- */
-  font-family: inherit; /* Uses your app's font */
-  font-size: inherit;   /* Uses your previously defined size */
-  font-weight: inherit; /* Uses your previously defined weight */
-  color: inherit;
-  
-  /* Reset padding to prevent offset */
-  padding: 0; 
-  margin: 0;
-  
-  /* Optional: Ensure line height is comfortable for wrapping */
-  line-height: 1.2; 
+  padding: 10px 0;   /* Adds a little breathing room top/bottom */
+  margin-bottom: 10px;
+}
+
+.title-input::placeholder {
+  color: #bababa;
+  opacity: 1;
 }
