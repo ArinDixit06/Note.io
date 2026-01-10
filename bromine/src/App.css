@@ -479,25 +479,27 @@ body::before {
 .cover-btn { color: #ccc; }
 .cover-btn:hover { background: rgba(255,255,255,0.1); color: white; }
 .title-input {
-  /* --- TYPOGRAPHY FIXES --- */
-  font-size: 40px !important;  /* Force large text */
-  font-weight: 700 !important; /* Force bold */
-  line-height: 1.2;            /* Better spacing for multi-line titles */
-  color: #FFFFFF;              /* Dark grey/black */
-  font-family: inherit;        /* Keeps your app's font family */
+  /* --- APPLE SYSTEM FONT STACK --- */
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  
+  /* --- SIZE & WEIGHT --- */
+  font-size: 42px !important;  /* Increased size */
+  font-weight: 700 !important; /* Bold */
+  line-height: 1.1;            /* Apple titles usually have tighter line height */
+  color: #FFFFFF;              /* Apple titles are usually deep black */
 
-  /* --- STRUCTURE --- */
+  /* --- STRUCTURE (Required for wrapping) --- */
   width: 100%;
   resize: none;      /* Removes drag handle */
   overflow: hidden;  /* Hides scrollbar */
   background: transparent;
   border: none;
   outline: none;
-  padding: 10px 0;   /* Adds a little breathing room top/bottom */
+  padding: 10px 0;
   margin-bottom: 10px;
 }
 
 .title-input::placeholder {
-  color: #bababa;
+  color: #d1d1d6; /* Apple-style light grey placeholder */
   opacity: 1;
 }
