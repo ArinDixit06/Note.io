@@ -4,6 +4,7 @@ import NoteList from './components/NoteList';
 import NoteEditor from './components/NoteEditor';
 import NewNoteButton from './components/NewNoteButton';
 import { fetchNotes, createNote, updateNote, deleteNote } from './api';
+import { v4 as uuidv4 } from 'uuid'; // <--- IMPORT THIS
 import './App.css';
 
 function App() {
@@ -11,10 +12,8 @@ function App() {
   const [selectedNote, setSelectedNote] = useState(null); 
   const [isLoading, setIsLoading] = useState(true);
   
-  // --- NEW STATE FOR SIDEBAR ---
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
-  // Load notes on mount
   useEffect(() => {
     loadNotes();
   }, []);
@@ -22,7 +21,6 @@ function App() {
   const loadNotes = async () => {
     try {
       const data = await fetchNotes();
-      // Ensure we always have an array
       setNotes(Array.isArray(data) ? data.reverse() : []);
     } catch (error) {
       console.error("Failed to load notes:", error);
@@ -31,22 +29,21 @@ function App() {
     }
   };
 
-  // --- CREATE FUNCTION ---
   const handleCreate = async () => {
     try {
-      // 1. Create a default object
+      // 1. Generate a UUID (Required by your Server now)
+      const newLocalId = uuidv4(); 
+
       const defaultNote = { 
+        localId: newLocalId, // <--- CRITICAL FIX: Send localId
         title: "Untitled", 
-        content: "<p></p>" // Empty paragraph for the editor
+        content: "<p></p>",
+        coverImage: ""
       };
       
-      // 2. Save to Server first
       const createdNote = await createNote(defaultNote);
 
-      // 3. Update the Grid (Home Page) immediately
       setNotes((prevNotes) => [createdNote, ...prevNotes]);
-
-      // 4. Open the Editor immediately
       setSelectedNote(createdNote);
       
     } catch (error) {
@@ -56,7 +53,7 @@ function App() {
   };
 
   const handleUpdate = async (updatedNote) => {
-    // Optimistic UI Update (Updates grid while you type)
+    // Optimistic UI Update
     setNotes((prevNotes) => 
       prevNotes.map((n) => (n._id === updatedNote._id ? updatedNote : n))
     );
@@ -68,9 +65,7 @@ function App() {
     if (window.confirm("Are you sure you want to delete this note?")) {
       try {
         await deleteNote(id);
-        // Remove from local state immediately
         setNotes((prevNotes) => prevNotes.filter((n) => n._id !== id));
-        // If we were editing this note, go back to dashboard
         if (selectedNote?._id === id) {
           setSelectedNote(null);
         }
@@ -82,7 +77,6 @@ function App() {
 
   return (
     <div className="app-layout">
-      {/* --- SIDEBAR WITH TOGGLE PROPS --- */}
       <Sidebar 
         onHome={() => setSelectedNote(null)} 
         isOpen={isSidebarOpen} 
@@ -91,17 +85,15 @@ function App() {
       
       <main className="main-content">
         {selectedNote ? (
-          /* --- EDITOR VIEW --- */
           <NoteEditor 
             note={selectedNote} 
             onUpdate={handleUpdate} 
             onDelete={handleDelete}
             onBack={() => setSelectedNote(null)} 
             allNotes={notes} 
-  onNavigate={setSelectedNote}
+            onNavigate={setSelectedNote}
           />
         ) : (
-          /* --- GRID / DASHBOARD VIEW --- */
           <div className="dashboard">
             <div className="dashboard-header">
               <h1>My Workspace</h1>
