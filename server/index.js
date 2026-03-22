@@ -1,53 +1,118 @@
 const express = require('express');
-const mongoose = require('mongoose');
 const cors = require('cors');
+const { createClient } = require('@supabase/supabase-js');
 require('dotenv').config();
-const Note = require('./models/Note');
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Connect to MongoDB
-mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log("Connected to MongoDB Atlas"))
-  .catch(err => console.log(err));
+const { SUPABASE_URL, SUPABASE_ANON_KEY } = process.env;
+
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+  throw new Error('Missing SUPABASE_URL or SUPABASE_ANON_KEY in server environment');
+}
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: {
+    autoRefreshToken: false,
+    persistSession: false,
+  },
+});
+
+const mapNote = (row) => ({
+  _id: row.id,
+  localId: row.local_id,
+  title: row.title,
+  content: row.content,
+  coverImage: row.cover_image,
+  createdAt: row.created_at,
+  updatedAt: row.updated_at,
+});
 
 // --- API Routes ---
 
 app.get('/api/notes', async (req, res) => {
-  const notes = await Note.find();
-  res.json(notes);
+  const { data, error } = await supabase
+    .from('notes')
+    .select('*')
+    .order('created_at', { ascending: true });
+
+  if (error) {
+    return res.status(500).json({ error: error.message });
+  }
+
+  res.json(data.map(mapNote));
 });
 
-// --- UPDATED POST ROUTE (The Fix) ---
 app.post('/api/notes', async (req, res) => {
-  const { localId, title, content, coverImage } = req.body;
+  const { localId, title = 'Untitled', content = '', coverImage = '' } = req.body;
+
+  if (!localId) {
+    return res.status(400).json({ error: 'localId is required' });
+  }
 
   try {
-    // findOneAndUpdate with 'upsert: true' does exactly what you want:
-    // It searches for a note with this 'localId'.
-    // If it exists -> Updates it.
-    // If it doesn't -> Creates a new one.
-    const note = await Note.findOneAndUpdate(
-      { localId: localId }, 
-      { title, content, coverImage, localId }, 
-      { new: true, upsert: true, setDefaultsOnInsert: true }
-    );
-    res.json(note);
+    const { data, error } = await supabase
+      .from('notes')
+      .upsert(
+        {
+          local_id: localId,
+          title,
+          content,
+          cover_image: coverImage,
+        },
+        {
+          onConflict: 'local_id',
+        }
+      )
+      .select()
+      .single();
+
+    if (error) {
+      return res.status(500).json({ error: error.message });
+    }
+
+    res.json(mapNote(data));
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
-// -------------------------------------
 
 app.put('/api/notes/:id', async (req, res) => {
-  const updatedNote = await Note.findByIdAndUpdate(req.params.id, req.body, { new: true });
-  res.json(updatedNote);
+  const { localId, title, content, coverImage } = req.body;
+
+  const payload = {
+    ...(localId ? { local_id: localId } : {}),
+    ...(title !== undefined ? { title } : {}),
+    ...(content !== undefined ? { content } : {}),
+    ...(coverImage !== undefined ? { cover_image: coverImage } : {}),
+  };
+
+  const { data, error } = await supabase
+    .from('notes')
+    .update(payload)
+    .eq('id', req.params.id)
+    .select()
+    .single();
+
+  if (error) {
+    return res.status(500).json({ error: error.message });
+  }
+
+  res.json(mapNote(data));
 });
 
 app.delete('/api/notes/:id', async (req, res) => {
-  await Note.findByIdAndDelete(req.params.id);
+  const { error } = await supabase
+    .from('notes')
+    .delete()
+    .eq('id', req.params.id);
+
+  if (error) {
+    return res.status(500).json({ error: error.message });
+  }
+
   res.json({ message: "Note Deleted" });
 });
 
