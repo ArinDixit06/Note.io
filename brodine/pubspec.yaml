@@ -1,0 +1,37 @@
+name: Brodine
+description: "A minimal, modern note-taking app."
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.2.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  
+  # --- UI & FONTS ---
+  google_fonts: ^6.1.0
+  cupertino_icons: ^1.0.6
+  
+  # --- NETWORK & SYNC ---
+  http: ^1.2.0
+  intl: ^0.19.0
+  
+  # --- OFFLINE & DATABASE (NEW) ---
+  sqflite: ^2.3.0       # Local Database
+  path: ^1.8.3          # File paths
+  uuid: ^4.2.1          # Generate IDs offline
+  connectivity_plus: ^5.0.2 # Check Internet Status
+  pdf: ^3.10.0
+  printing: ^5.11.0
+  path_provider: ^2.1.1
+  share_plus: ^7.2.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true

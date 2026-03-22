@@ -1,7 +1,13 @@
-// In your backend (e.g., models/Note.js)
 const mongoose = require('mongoose');
 
 const NoteSchema = new mongoose.Schema({
+  // --- ADD THIS (The unique ID from Flutter) ---
+  localId: {
+    type: String,
+    required: true,
+    unique: true 
+  },
+  // ---------------------------------------------
   title: {
     type: String,
     required: true
@@ -10,12 +16,10 @@ const NoteSchema = new mongoose.Schema({
     type: String,
     required: false
   },
-  // --- ADD THIS FIELD ---
   coverImage: {
     type: String, 
     default: "" 
   },
-  // ---------------------
   createdAt: {
     type: Date,
     default: Date.now
