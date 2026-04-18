@@ -1,4 +1,4 @@
-import React, { useDeferredValue, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useDeferredValue, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
 import Sidebar from './components/Sidebar';
@@ -31,6 +31,71 @@ import {
   saveSessionToken,
 } from './profile';
 import './App.css';
+
+/* ── Toast Notification ──────────────────────────────────────── */
+function Toast({ message, tone = 'error', onDismiss }) {
+  useEffect(() => {
+    const timer = setTimeout(onDismiss, 4000);
+    return () => clearTimeout(timer);
+  }, [onDismiss]);
+
+  return (
+    <div
+      role="alert"
+      aria-live="assertive"
+      style={{
+        position: 'fixed',
+        bottom: 24,
+        right: 24,
+        zIndex: 9999,
+        maxWidth: 380,
+        padding: '13px 16px',
+        borderRadius: 14,
+        background: tone === 'error' ? '#fff' : '#fff',
+        border: `1px solid ${tone === 'error' ? 'rgba(255,59,48,0.18)' : 'rgba(0,113,227,0.18)'}`,
+        boxShadow: '0 12px 36px rgba(0,0,0,0.14), 0 2px 8px rgba(0,0,0,0.08)',
+        display: 'flex',
+        alignItems: 'flex-start',
+        gap: 12,
+        animation: 'fadeUp 200ms cubic-bezier(0.25,0.46,0.45,0.94) both',
+        backdropFilter: 'blur(20px)',
+      }}
+    >
+      <span style={{
+        flexShrink: 0,
+        width: 20, height: 20,
+        borderRadius: '50%',
+        background: tone === 'error' ? '#ffebee' : '#e3f2fd',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        marginTop: 1,
+      }}>
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+          {tone === 'error'
+            ? <path d="M5 1v4M5 8v.5" stroke="#c62828" strokeWidth="1.6" strokeLinecap="round" />
+            : <path d="M2 5l2 2 4-4" stroke="#1565c0" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />}
+        </svg>
+      </span>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: '#1d1d1f', letterSpacing: '-0.01em' }}>
+          {tone === 'error' ? 'Something went wrong' : 'Success'}
+        </p>
+        <p style={{ margin: '2px 0 0', fontSize: 12, color: '#6e6e73', lineHeight: 1.5 }}>{message}</p>
+      </div>
+      <button
+        onClick={onDismiss}
+        style={{
+          flexShrink: 0, width: 20, height: 20, borderRadius: '50%',
+          background: 'rgba(0,0,0,0.06)', border: 'none', cursor: 'pointer',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}
+      >
+        <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
+          <path d="M1 1l6 6M7 1L1 7" stroke="#6e6e73" strokeWidth="1.4" strokeLinecap="round" />
+        </svg>
+      </button>
+    </div>
+  );
+}
 
 const VIEW_LABELS = {
   all: 'All Pages',
@@ -112,6 +177,25 @@ const getWorkspaceBlurb = (workspace) => {
   return 'This personal workspace is built for focused capture, reflection, and quiet momentum across your own pages.';
 };
 
+const normalizeAuthMessage = (message, fallback = 'Something went wrong. Try again.') => {
+  if (!message) {
+    return fallback;
+  }
+
+  const lowered = message.trim().toLowerCase();
+
+  if (
+    lowered === 'failed to fetch' ||
+    lowered.includes('networkerror') ||
+    lowered.includes('load failed') ||
+    lowered.includes('network request failed')
+  ) {
+    return fallback;
+  }
+
+  return message;
+};
+
 function LoginScreen({
   email,
   onEmailChange,
@@ -119,22 +203,30 @@ function LoginScreen({
   onCodeChange,
   pendingDelivery,
   statusMessage,
+  statusTone,
   isSubmitting,
   onRequestLogin,
   onVerifyCode,
   onUseMagicLink,
 }) {
+  const hasDelivery = Boolean(pendingDelivery);
+
   return (
     <div className="auth-shell">
+      <section className="auth-hero">
+        <p className="eyebrow">Quiet workspace access</p>
+        <h2>Work begins the moment you arrive.</h2>
+        <p className="hero-copy">
+          Bromine keeps the sign-in flow minimal so the workspace stays the focus. Request a link,
+          check your email, and continue.
+        </p>
+      </section>
+
       <section className="auth-card">
         <div className="auth-intro">
-          <p className="eyebrow">Passwordless Access</p>
-          <h1>Enter Bromine through your workspace, not a forgotten password.</h1>
-          <p className="hero-copy">
-            Request one email and Bromine generates both a 4-word login code and a magic link. In
-            this build, the delivery appears instantly so you can test the flow without email
-            infrastructure.
-          </p>
+          <p className="eyebrow">Passwordless access</p>
+          <h1>Log in to Bromine</h1>
+          <p className="hero-copy">A calm, direct login flow with one email and one short code.</p>
         </div>
 
         <div className="auth-form">
@@ -144,67 +236,81 @@ function LoginScreen({
               type="email"
               value={email}
               onChange={(event) => onEmailChange(event.target.value)}
-              placeholder="you@workspace.com"
+              placeholder="Enter your email"
             />
           </label>
 
           <div className="auth-actions">
-            <button className="new-note-btn" onClick={onRequestLogin} disabled={isSubmitting}>
-              {isSubmitting ? 'Sending...' : 'Send login email'}
+            <button className="auth-primary-button" onClick={onRequestLogin} disabled={isSubmitting}>
+              {isSubmitting ? (
+                <span className="auth-button-content">
+                  <span className="auth-spinner" aria-hidden="true" />
+                  Sending
+                </span>
+              ) : (
+                'Continue with email'
+              )}
             </button>
           </div>
 
-          <label>
-            <span>4-word login code</span>
-            <input
-              type="text"
-              value={code}
-              onChange={(event) => onCodeChange(event.target.value)}
-              placeholder="sage ember paper coast"
-            />
-          </label>
+          {hasDelivery ? (
+            <div className="auth-step-card">
+              <div className="auth-step-copy">
+                <p className="auth-step-label">Step 2</p>
+                <p className="auth-step-message">We sent a login link and code to your email.</p>
+              </div>
 
-          <div className="auth-actions">
-            <button className="button" onClick={onVerifyCode} disabled={isSubmitting}>
-              Verify code
-            </button>
-          </div>
+              <label>
+                <span>Code</span>
+                <input
+                  type="text"
+                  value={code}
+                  onChange={(event) => onCodeChange(event.target.value)}
+                  placeholder="Enter code"
+                />
+              </label>
 
-          {statusMessage ? <p className="auth-status">{statusMessage}</p> : null}
+              <p className="auth-helper">Check your email for a 4-word code.</p>
+
+              <div className="auth-actions">
+                <button className="auth-secondary-button" onClick={onVerifyCode} disabled={isSubmitting}>
+                  Verify
+                </button>
+                {pendingDelivery?.magicToken ? (
+                  <button className="auth-link-button" onClick={onUseMagicLink} disabled={isSubmitting}>
+                    Use magic link
+                  </button>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
+
+          {statusMessage ? <p className={`auth-status auth-status-${statusTone}`}>{statusMessage}</p> : null}
         </div>
       </section>
 
-      <section className="delivery-card">
+      <section className="delivery-card auth-delivery-card">
         <div className="delivery-header">
-          <p className="eyebrow">Bromine Mail</p>
-          <h2>Simulated delivery preview</h2>
+          <p className="eyebrow">Delivery</p>
+          <h2>Email status</h2>
         </div>
         {pendingDelivery ? (
           <div className="delivery-preview">
             <div className="delivery-row">
-              <span>To</span>
+              <span>Email</span>
               <strong>{pendingDelivery.email}</strong>
             </div>
             <div className="delivery-row">
-              <span>4-word code</span>
+              <span>Code</span>
               <strong>{pendingDelivery.loginCode}</strong>
-            </div>
-            <div className="delivery-row">
-              <span>Magic token</span>
-              <strong>{pendingDelivery.magicToken.slice(0, 16)}...</strong>
             </div>
             <div className="delivery-row">
               <span>Expires</span>
               <strong>{new Date(pendingDelivery.expiresAt).toLocaleString()}</strong>
             </div>
-            <div className="auth-actions">
-              <button className="button" onClick={onUseMagicLink}>
-                Use magic link instantly
-              </button>
-            </div>
           </div>
         ) : (
-          <p className="empty-state">Request a login email to preview the magic link and code here.</p>
+          <p className="empty-state">Request a login email to reveal the latest code and delivery status here.</p>
         )}
       </section>
     </div>
@@ -327,7 +433,13 @@ function App() {
   const [loginCode, setLoginCode] = useState('');
   const [pendingDelivery, setPendingDelivery] = useState(null);
   const [statusMessage, setStatusMessage] = useState('');
+  const [statusTone, setStatusTone] = useState('neutral');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [toast, setToast] = useState(null);
+
+  const showToast = useCallback((message, tone = 'error') => {
+    setToast({ message, tone, id: Date.now() });
+  }, []);
   const [creatorDraft, setCreatorDraft] = useState({ fullName: '', title: '' });
   const [workspaceDraft, setWorkspaceDraft] = useState({ name: '', icon: '[]', accent: '#d89a5b', useCase: 'team' });
   const [newWorkspaceDraft, setNewWorkspaceDraft] = useState(DEFAULT_NEW_WORKSPACE);
@@ -429,6 +541,7 @@ function App() {
           const payload = await verifyMagicLink(magicToken);
           if (!active) return;
           applySessionPayload(payload);
+          setStatusTone('success');
           setStatusMessage('Magic link verified.');
           setSearchParams({});
           return;
@@ -447,7 +560,8 @@ function App() {
         clearWorkspaceId();
         setSessionToken(null);
         setSessionData(null);
-        setStatusMessage(error.message);
+        setStatusTone('error');
+        setStatusMessage(normalizeAuthMessage(error.message));
       } finally {
         if (active) {
           setIsBooting(false);
@@ -525,12 +639,14 @@ function App() {
   const handleRequestLogin = async () => {
     setIsSubmitting(true);
     setStatusMessage('');
+    setStatusTone('neutral');
 
     try {
       const payload = await requestLogin(loginEmail);
       setPendingDelivery(payload.delivery);
       setLoginCode(payload.delivery.loginCode);
-      setStatusMessage('Login email generated. Use the code or the magic link preview.');
+      setStatusTone('success');
+      setStatusMessage('We sent a login link and code to your email.');
       try {
         const inbox = await fetchInboxPreview(loginEmail);
         setPendingDelivery(inbox.delivery);
@@ -538,7 +654,8 @@ function App() {
         // Ignore inbox refresh errors when the preview is already available.
       }
     } catch (error) {
-      setStatusMessage(error.message);
+      setStatusTone('error');
+      setStatusMessage(normalizeAuthMessage(error.message));
     } finally {
       setIsSubmitting(false);
     }
@@ -547,12 +664,14 @@ function App() {
   const handleVerifyCode = async () => {
     setIsSubmitting(true);
     setStatusMessage('');
+    setStatusTone('neutral');
 
     try {
       const payload = await verifyCode(loginEmail, loginCode);
       applySessionPayload(payload);
     } catch (error) {
-      setStatusMessage(error.message);
+      setStatusTone('error');
+      setStatusMessage(normalizeAuthMessage(error.message));
     } finally {
       setIsSubmitting(false);
     }
@@ -565,12 +684,14 @@ function App() {
 
     setIsSubmitting(true);
     setStatusMessage('');
+    setStatusTone('neutral');
 
     try {
       const payload = await verifyMagicLink(pendingDelivery.magicToken);
       applySessionPayload(payload);
     } catch (error) {
-      setStatusMessage(error.message);
+      setStatusTone('error');
+      setStatusMessage(normalizeAuthMessage(error.message));
     } finally {
       setIsSubmitting(false);
     }
@@ -683,7 +804,9 @@ function App() {
       setNotes((currentNotes) => sortNotes([note, ...currentNotes]));
       setSelectedNoteId(note._id);
     } catch (error) {
-      setStatusMessage(error.message);
+      const msg = error.message || 'Failed to create page. The server may be waking up — try again in a moment.';
+      setStatusMessage(msg);
+      showToast(msg);
     }
   };
 
@@ -742,6 +865,7 @@ function App() {
         onCodeChange={setLoginCode}
         pendingDelivery={pendingDelivery}
         statusMessage={statusMessage}
+        statusTone={statusTone}
         isSubmitting={isSubmitting}
         onRequestLogin={handleRequestLogin}
         onVerifyCode={handleVerifyCode}
@@ -764,6 +888,14 @@ function App() {
 
   return (
     <div className="app-layout">
+      {toast && (
+        <Toast
+          key={toast.id}
+          message={toast.message}
+          tone={toast.tone}
+          onDismiss={() => setToast(null)}
+        />
+      )}
       <Sidebar
         account={sessionData.account}
         currentWorkspace={currentWorkspace}
