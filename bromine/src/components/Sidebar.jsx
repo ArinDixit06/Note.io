@@ -1,41 +1,127 @@
 import React from 'react';
 
-const Sidebar = ({ onHome, isOpen, toggleSidebar }) => {
+const navItems = [
+  { id: 'all', label: 'All Notes', icon: 'Pages' },
+  { id: 'owned', label: 'My Pages', icon: 'Owned' },
+  { id: 'favorites', label: 'Favorites', icon: 'Starred' },
+  { id: 'archived', label: 'Archive', icon: 'Vault' },
+];
+
+const Sidebar = ({
+  profile,
+  stats,
+  activeView,
+  onViewChange,
+  searchQuery,
+  onSearchChange,
+  onProfileChange,
+  isOpen,
+  toggleSidebar,
+}) => {
   return (
     <>
-      {/* 1. The Toggle Button 
-         It sits outside the sidebar div so it doesn't disappear when collapsed.
-         The CSS class .sidebar-toggle-btn (provided in App.css) positions it.
-      */}
-      <button 
-        className="sidebar-toggle-btn" 
+      <button
+        className="sidebar-toggle-btn"
         onClick={toggleSidebar}
-        title={isOpen ? "Close Sidebar" : "Open Sidebar"}
+        title={isOpen ? 'Close Sidebar' : 'Open Sidebar'}
       >
-        {/* You can swap these arrows for an icon like ☰ if you prefer */}
-        {isOpen ? '◀' : '▶'}
+        {isOpen ? '‹' : '›'}
       </button>
 
-      {/* 2. The Sidebar Container
-         Dynamically adds the 'collapsed' class based on the isOpen prop.
-      */}
-      <div className={`sidebar ${isOpen ? '' : 'collapsed'}`}>
+      <aside className={`sidebar ${isOpen ? '' : 'collapsed'}`}>
         <div className="brand">
-          <h2>Bromine / Workspace</h2>
+          <p>Bromine</p>
+          <h2>{profile.workspaceName}</h2>
         </div>
-        
-        <div className="menu">
-          <button onClick={onHome} className="menu-item active">
-            <span style={{fontSize: '16px'}}>📄</span> All Notes
-          </button>
-          <button className="menu-item">
-            <span style={{fontSize: '16px'}}>🌟</span> Favorites
-          </button>
-          <button className="menu-item">
-            <span style={{fontSize: '16px'}}>🗑️</span> Trash
-          </button>
-        </div>
-      </div>
+
+        <section className="profile-card">
+          <div className="profile-avatar" style={{ '--profile-accent': profile.accent }}>
+            {profile.avatarSeed}
+          </div>
+          <div className="profile-copy">
+            <strong>{profile.fullName}</strong>
+            <span>{profile.role}</span>
+          </div>
+        </section>
+
+        <label className="sidebar-search">
+          <span>Quick Find</span>
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(event) => onSearchChange(event.target.value)}
+            placeholder="Search titles, tags, status..."
+          />
+        </label>
+
+        <nav className="menu">
+          {navItems.map((item) => (
+            <button
+              key={item.id}
+              onClick={() => onViewChange(item.id)}
+              className={`menu-item ${activeView === item.id ? 'active' : ''}`}
+            >
+              <span>{item.icon}</span>
+              <span>{item.label}</span>
+            </button>
+          ))}
+        </nav>
+
+        <section className="profile-settings">
+          <div className="settings-heading">
+            <p>Profile System</p>
+            <small>Core workspace identity</small>
+          </div>
+
+          <label>
+            <span>Name</span>
+            <input
+              type="text"
+              value={profile.fullName}
+              onChange={(event) => onProfileChange({ fullName: event.target.value })}
+            />
+          </label>
+          <label>
+            <span>Role</span>
+            <input
+              type="text"
+              value={profile.role}
+              onChange={(event) => onProfileChange({ role: event.target.value })}
+            />
+          </label>
+          <label>
+            <span>Workspace</span>
+            <input
+              type="text"
+              value={profile.workspaceName}
+              onChange={(event) => onProfileChange({ workspaceName: event.target.value })}
+            />
+          </label>
+          <label>
+            <span>Accent</span>
+            <input
+              type="color"
+              value={profile.accent}
+              onChange={(event) => onProfileChange({ accent: event.target.value })}
+            />
+          </label>
+        </section>
+
+        <section className="sidebar-summary">
+          <div>
+            <span>Owned</span>
+            <strong>{stats.owned}</strong>
+          </div>
+          <div>
+            <span>Starred</span>
+            <strong>{stats.favorites}</strong>
+          </div>
+          <div>
+            <span>Archive</span>
+            <strong>{stats.archived}</strong>
+          </div>
+        </section>
+      </aside>
     </>
   );
 };
