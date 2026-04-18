@@ -1,0 +1,87 @@
+-- WARNING: This schema is for context only and is not meant to be run directly.
+
+CREATE TABLE public.accounts (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  email text NOT NULL UNIQUE,
+  full_name text NOT NULL DEFAULT 'Bromine User'::text,
+  title text NOT NULL DEFAULT 'Workspace builder'::text,
+  avatar_seed text NOT NULL DEFAULT 'BR'::text,
+  discoverable boolean NOT NULL DEFAULT true,
+  legacy_profile_key text,
+  onboarded_at timestamp with time zone,
+  last_login_at timestamp with time zone,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT accounts_pkey PRIMARY KEY (id)
+);
+
+CREATE TABLE public.workspaces (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  name text NOT NULL,
+  slug text NOT NULL UNIQUE,
+  icon text NOT NULL DEFAULT '[]'::text,
+  accent text NOT NULL DEFAULT '#d89a5b'::text,
+  use_case text NOT NULL DEFAULT 'personal'::text,
+  created_by uuid,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT workspaces_pkey PRIMARY KEY (id),
+  CONSTRAINT workspaces_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.accounts(id)
+);
+
+CREATE TABLE public.workspace_members (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  workspace_id uuid NOT NULL,
+  account_id uuid NOT NULL,
+  role text NOT NULL DEFAULT 'member'::text,
+  title text NOT NULL DEFAULT ''::text,
+  joined_at timestamp with time zone NOT NULL DEFAULT now(),
+  last_active_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT workspace_members_pkey PRIMARY KEY (id),
+  CONSTRAINT workspace_members_workspace_account_key UNIQUE (workspace_id, account_id),
+  CONSTRAINT workspace_members_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id),
+  CONSTRAINT workspace_members_account_id_fkey FOREIGN KEY (account_id) REFERENCES public.accounts(id)
+);
+
+CREATE TABLE public.sessions (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  account_id uuid NOT NULL,
+  token text NOT NULL UNIQUE,
+  expires_at timestamp with time zone NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT sessions_pkey PRIMARY KEY (id),
+  CONSTRAINT sessions_account_id_fkey FOREIGN KEY (account_id) REFERENCES public.accounts(id)
+);
+
+CREATE TABLE public.auth_requests (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  email text NOT NULL,
+  login_code text NOT NULL,
+  magic_token text NOT NULL UNIQUE,
+  expires_at timestamp with time zone NOT NULL,
+  consumed_at timestamp with time zone,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT auth_requests_pkey PRIMARY KEY (id)
+);
+
+CREATE TABLE public.notes (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  workspace_id uuid NOT NULL,
+  local_id text NOT NULL,
+  title text NOT NULL DEFAULT 'Untitled'::text,
+  content text NOT NULL DEFAULT ''::text,
+  cover_image text NOT NULL DEFAULT ''::text,
+  status text NOT NULL DEFAULT 'Draft'::text,
+  tags text[] NOT NULL DEFAULT ARRAY[]::text[],
+  is_favorite boolean NOT NULL DEFAULT false,
+  is_archived boolean NOT NULL DEFAULT false,
+  created_by_account_id uuid NOT NULL,
+  last_edited_by_account_id uuid NOT NULL,
+  last_viewed_at timestamp with time zone,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT notes_pkey PRIMARY KEY (id),
+  CONSTRAINT notes_workspace_id_local_id_key UNIQUE (workspace_id, local_id),
+  CONSTRAINT notes_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id),
+  CONSTRAINT notes_created_by_account_id_fkey FOREIGN KEY (created_by_account_id) REFERENCES public.accounts(id),
+  CONSTRAINT notes_last_edited_by_account_id_fkey FOREIGN KEY (last_edited_by_account_id) REFERENCES public.accounts(id)
+);

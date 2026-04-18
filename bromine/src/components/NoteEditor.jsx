@@ -17,16 +17,16 @@ import NoteLink from '../extensions/NoteLink';
 import NotePicker from './NotePicker';
 
 const COVERS = [
-  '#f7f6f3',
-  '#f1f0ef',
-  '#edf3ec',
-  '#e7f3f8',
-  '#f4f0fd',
-  '#fbe8f7',
-  '#fde8e8',
-  '#fbecdd',
-  '#fef3db',
-  '#f4eeee',
+  '#f7f1ea',
+  '#f3ebe1',
+  '#efe5dc',
+  '#f0ede6',
+  '#f5e7d7',
+  '#ebdfd2',
+  '#e6efe8',
+  '#e4edf5',
+  '#efe6f4',
+  '#f6e4e2',
 ];
 
 const STATUSES = ['Draft', 'In Review', 'Published', 'Blocked'];
@@ -40,13 +40,22 @@ const statusTone = (status) => {
   return 'brown';
 };
 
-const NoteEditor = ({ note, profile, onUpdate, onDelete, onBack, allNotes, onNavigate }) => {
+const NoteEditor = ({
+  note,
+  account,
+  workspace,
+  members,
+  onUpdate,
+  onDelete,
+  onBack,
+  allNotes,
+  onNavigate,
+}) => {
   const [title, setTitle] = useState(note.title || '');
   const [cover, setCover] = useState(note.coverImage || '');
   const [showCoverPicker, setShowCoverPicker] = useState(false);
   const [showNotePicker, setShowNotePicker] = useState(false);
   const [pickerRange, setPickerRange] = useState(null);
-  const [workspace, setWorkspace] = useState(note.workspace || profile.workspaceName);
   const [status, setStatus] = useState(note.status || 'Draft');
   const [tagsInput, setTagsInput] = useState((note.tags || []).join(', '));
   const [favorite, setFavorite] = useState(Boolean(note.favorite));
@@ -59,7 +68,6 @@ const NoteEditor = ({ note, profile, onUpdate, onDelete, onBack, allNotes, onNav
       title,
       coverImage: cover,
       content: editorInstance?.getHTML() || note.content || '',
-      workspace,
       status,
       tags: tagsInput
         .split(',')
@@ -67,9 +75,8 @@ const NoteEditor = ({ note, profile, onUpdate, onDelete, onBack, allNotes, onNav
         .filter(Boolean),
       favorite,
       archived,
-      ownerName: profile.fullName,
-      ownerRole: profile.role,
-      profileId: profile.id,
+      ownerName: note.ownerName || account.fullName,
+      ownerRole: note.ownerRole || account.title,
       lastViewedAt: new Date().toISOString(),
       ...patch,
     });
@@ -140,7 +147,7 @@ const NoteEditor = ({ note, profile, onUpdate, onDelete, onBack, allNotes, onNav
         title: 'Bullet List',
         command: ({ editor: instance, range }) =>
           instance.chain().focus().deleteRange(range).toggleBulletList().run(),
-        element: <span>• Bullet List</span>,
+        element: <span>Bullet List</span>,
       },
       {
         title: 'Numbered List',
@@ -152,13 +159,13 @@ const NoteEditor = ({ note, profile, onUpdate, onDelete, onBack, allNotes, onNav
         title: 'Divider',
         command: ({ editor: instance, range }) =>
           instance.chain().focus().deleteRange(range).setHorizontalRule().run(),
-        element: <span>— Divider</span>,
+        element: <span>Divider</span>,
       },
       {
         title: 'Code Block',
         command: ({ editor: instance, range }) =>
           instance.chain().focus().deleteRange(range).setCodeBlock().run(),
-        element: <span>&lt;/&gt; Code Block</span>,
+        element: <span>Code Block</span>,
       },
       {
         title: 'Link to Note',
@@ -167,7 +174,7 @@ const NoteEditor = ({ note, profile, onUpdate, onDelete, onBack, allNotes, onNav
           setPickerRange(range.from);
           setShowNotePicker(true);
         },
-        element: <span>🔗 Link Note</span>,
+        element: <span>Link Note</span>,
       },
     ].filter((item) => item.title.toLowerCase().includes(query.toLowerCase()));
 
@@ -297,7 +304,9 @@ const NoteEditor = ({ note, profile, onUpdate, onDelete, onBack, allNotes, onNav
 
       <div className="page-shell">
         <div className="page-content">
-          <div className="breadcrumb">Workspace / {workspace} / {note.title || 'Untitled'}</div>
+          <div className="breadcrumb">
+            {workspace?.icon || '[]'} {workspace?.name || 'Workspace'} / {note.title || 'Untitled'}
+          </div>
 
           <div className="editor-header">
             <button onClick={onBack} className="button">
@@ -326,7 +335,7 @@ const NoteEditor = ({ note, profile, onUpdate, onDelete, onBack, allNotes, onNav
               </button>
               <button
                 onClick={() => {
-                  if (window.confirm('Delete note?')) onDelete(note._id);
+                  if (window.confirm('Delete page?')) onDelete(note._id);
                 }}
                 className="button button-danger"
               >
@@ -348,7 +357,7 @@ const NoteEditor = ({ note, profile, onUpdate, onDelete, onBack, allNotes, onNav
             </button>
           ) : null}
 
-          <div className="page-icon">📄</div>
+          <div className="page-icon">{workspace?.icon || '[]'}</div>
 
           <textarea
             ref={titleRef}
@@ -364,23 +373,30 @@ const NoteEditor = ({ note, profile, onUpdate, onDelete, onBack, allNotes, onNav
             spellCheck={false}
           />
 
+          <div className="presence-row">
+            <div className="presence-stack">
+              {members.slice(0, 6).map((member) => (
+                <span key={member.membershipId} className="presence-avatar" title={`${member.fullName} · ${member.role}`}>
+                  {member.avatarSeed}
+                </span>
+              ))}
+            </div>
+            <span className="meta-inline">
+              Last edited by {note.lastEditedByName || account.fullName}{' '}
+              {note.updatedAt ? `on ${new Date(note.updatedAt).toLocaleString()}` : ''}
+            </span>
+          </div>
+
           <div className="property-table">
             <label className="property-row">
               <span className="property-name">Owner</span>
-              <span className="property-value property-value-text">
-                {profile.fullName} · {profile.role}
+              <span className="property-value-text">
+                {note.ownerName || account.fullName} · {note.ownerRole || account.title}
               </span>
             </label>
             <label className="property-row">
               <span className="property-name">Workspace</span>
-              <input
-                value={workspace}
-                onChange={(event) => {
-                  const nextValue = event.target.value;
-                  setWorkspace(nextValue);
-                  commit({ workspace: nextValue });
-                }}
-              />
+              <span className="property-value-text">{workspace?.name}</span>
             </label>
             <label className="property-row">
               <span className="property-name">Status</span>
@@ -406,7 +422,7 @@ const NoteEditor = ({ note, profile, onUpdate, onDelete, onBack, allNotes, onNav
                   value={tagsInput}
                   onChange={(event) => setTagsInput(event.target.value)}
                   onBlur={() => commit()}
-                  placeholder="docs, planning, sprint"
+                  placeholder="brief, strategy, docs"
                 />
                 <div className="property-inline-chips">
                   {tagsInput
@@ -426,13 +442,13 @@ const NoteEditor = ({ note, profile, onUpdate, onDelete, onBack, allNotes, onNav
 
           <div className="title-support">
             <span className={`property-chip property-chip-${statusTone(status)}`}>{status}</span>
-            <span className="meta-inline">{workspace}</span>
-            <span className="meta-inline">{profile.fullName}</span>
+            <span className="meta-inline">{workspace?.name}</span>
+            <span className="meta-inline">{note.ownerName || account.fullName}</span>
           </div>
 
           <EditorContent editor={editor} className="tiptap-editor" />
 
-          <div className="comment-zone">Add comment…</div>
+          <div className="comment-zone">Presence is ambient here. Invite collaborators by adding them to the workspace.</div>
         </div>
       </div>
     </div>

@@ -1,0 +1,28 @@
+DO $$
+BEGIN
+  ALTER TABLE public.notes
+    ADD COLUMN IF NOT EXISTS profile_id text;
+
+  UPDATE public.notes
+  SET profile_id = 'profile-default'
+  WHERE profile_id IS NULL OR profile_id = '';
+
+  ALTER TABLE public.notes
+    ALTER COLUMN profile_id SET NOT NULL;
+
+  ALTER TABLE public.notes
+    DROP CONSTRAINT IF EXISTS notes_local_id_key;
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conname = 'notes_profile_id_local_id_key'
+  ) THEN
+    ALTER TABLE public.notes
+      ADD CONSTRAINT notes_profile_id_local_id_key UNIQUE (profile_id, local_id);
+  END IF;
+
+  CREATE INDEX IF NOT EXISTS notes_profile_id_created_at_idx
+    ON public.notes (profile_id, created_at DESC);
+END
+$$;

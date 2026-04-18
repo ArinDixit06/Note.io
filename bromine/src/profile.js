@@ -1,98 +1,46 @@
-const PROFILE_STORAGE_KEY = 'bromine.userProfile';
-const NOTE_META_STORAGE_KEY = 'bromine.noteMeta';
+const SESSION_TOKEN_KEY = 'bromine.sessionToken';
+const ACTIVE_WORKSPACE_KEY = 'bromine.activeWorkspaceId';
 
-export const DEFAULT_PROFILE = {
-  id: 'profile-default',
-  fullName: 'Ari Morgan',
-  role: 'Workspace Architect',
-  email: 'ari@bromine.app',
-  workspaceName: 'Bromine Lab',
-  focus: 'Product strategy, knowledge capture, and delivery systems',
-  themeTone: 'Signal',
-  accent: '#f97316',
-  avatarSeed: 'AM',
-};
-
-export const DEFAULT_NOTE_META = {
-  favorite: false,
-  archived: false,
-  status: 'Draft',
-  tags: [],
-  workspace: 'General',
-  parentId: null,
-  lastViewedAt: null,
-};
-
-export const loadProfile = () => {
+export const loadSessionToken = () => {
   try {
-    const stored = window.localStorage.getItem(PROFILE_STORAGE_KEY);
-    return stored ? { ...DEFAULT_PROFILE, ...JSON.parse(stored) } : DEFAULT_PROFILE;
+    return window.localStorage.getItem(SESSION_TOKEN_KEY);
   } catch (error) {
-    console.error('Failed to read profile:', error);
-    return DEFAULT_PROFILE;
+    console.error('Failed to read session token:', error);
+    return null;
   }
 };
 
-export const saveProfile = (profile) => {
-  window.localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(profile));
+export const saveSessionToken = (token) => {
+  if (!token) {
+    window.localStorage.removeItem(SESSION_TOKEN_KEY);
+    return;
+  }
+
+  window.localStorage.setItem(SESSION_TOKEN_KEY, token);
 };
 
-export const loadNoteMeta = () => {
+export const clearSessionToken = () => {
+  window.localStorage.removeItem(SESSION_TOKEN_KEY);
+};
+
+export const loadActiveWorkspaceId = () => {
   try {
-    const stored = window.localStorage.getItem(NOTE_META_STORAGE_KEY);
-    return stored ? JSON.parse(stored) : {};
+    return window.localStorage.getItem(ACTIVE_WORKSPACE_KEY);
   } catch (error) {
-    console.error('Failed to read note metadata:', error);
-    return {};
+    console.error('Failed to read workspace id:', error);
+    return null;
   }
 };
 
-export const saveNoteMeta = (metaMap) => {
-  window.localStorage.setItem(NOTE_META_STORAGE_KEY, JSON.stringify(metaMap));
-};
-
-export const getMetaKey = (note) => note?._id || note?.localId;
-
-export const mergeNoteWithMeta = (note, metaMap, profile) => {
-  const meta = metaMap[getMetaKey(note)] || {};
-
-  return {
-    ...note,
-    profileId: meta.profileId || profile.id,
-    ownerName: meta.ownerName || profile.fullName,
-    ownerRole: meta.ownerRole || profile.role,
-    favorite: Boolean(meta.favorite),
-    archived: Boolean(meta.archived),
-    status: meta.status || DEFAULT_NOTE_META.status,
-    tags: Array.isArray(meta.tags) ? meta.tags : DEFAULT_NOTE_META.tags,
-    workspace: meta.workspace || DEFAULT_NOTE_META.workspace,
-    parentId: meta.parentId || DEFAULT_NOTE_META.parentId,
-    lastViewedAt: meta.lastViewedAt || null,
-  };
-};
-
-export const upsertNoteMeta = (metaMap, note, profile) => {
-  const key = getMetaKey(note);
-
-  if (!key) {
-    return metaMap;
+export const saveActiveWorkspaceId = (workspaceId) => {
+  if (!workspaceId) {
+    window.localStorage.removeItem(ACTIVE_WORKSPACE_KEY);
+    return;
   }
 
-  return {
-    ...metaMap,
-    [key]: {
-      ...DEFAULT_NOTE_META,
-      ...(metaMap[key] || {}),
-      profileId: note.profileId || profile.id,
-      ownerName: note.ownerName || profile.fullName,
-      ownerRole: note.ownerRole || profile.role,
-      favorite: Boolean(note.favorite),
-      archived: Boolean(note.archived),
-      status: note.status || DEFAULT_NOTE_META.status,
-      tags: Array.isArray(note.tags) ? note.tags : DEFAULT_NOTE_META.tags,
-      workspace: note.workspace || DEFAULT_NOTE_META.workspace,
-      parentId: note.parentId || DEFAULT_NOTE_META.parentId,
-      lastViewedAt: note.lastViewedAt || null,
-    },
-  };
+  window.localStorage.setItem(ACTIVE_WORKSPACE_KEY, workspaceId);
+};
+
+export const clearWorkspaceId = () => {
+  window.localStorage.removeItem(ACTIVE_WORKSPACE_KEY);
 };

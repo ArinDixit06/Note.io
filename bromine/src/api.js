@@ -1,46 +1,190 @@
-const API_URL = 'https://note-io-5hpc.onrender.com/api/notes';
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 const parseResponse = async (response, fallbackMessage) => {
+  const payload = await response.json().catch(() => null);
+
   if (!response.ok) {
-    throw new Error(fallbackMessage);
+    throw new Error(payload?.error || fallbackMessage);
   }
 
-  return response.json();
+  return payload;
 };
 
-export const fetchNotes = async () => {
-  const response = await fetch(API_URL);
+const withSession = (sessionToken, extraHeaders = {}) => ({
+  ...extraHeaders,
+  authorization: `Bearer ${sessionToken}`,
+});
+
+const withWorkspace = (sessionToken, workspaceId, extraHeaders = {}) =>
+  withSession(sessionToken, {
+    'x-workspace-id': workspaceId,
+    ...extraHeaders,
+  });
+
+export const requestLogin = async (email) => {
+  const response = await fetch(`${API_BASE}/auth/request-login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email }),
+  });
+
+  return parseResponse(response, 'Failed to request login');
+};
+
+export const fetchInboxPreview = async (email) => {
+  const response = await fetch(`${API_BASE}/auth/inbox?email=${encodeURIComponent(email)}`);
+  return parseResponse(response, 'Failed to load inbox preview');
+};
+
+export const verifyCode = async (email, code) => {
+  const response = await fetch(`${API_BASE}/auth/verify-code`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, code }),
+  });
+
+  return parseResponse(response, 'Failed to verify code');
+};
+
+export const verifyMagicLink = async (token) => {
+  const response = await fetch(`${API_BASE}/auth/verify-magic-link`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token }),
+  });
+
+  return parseResponse(response, 'Failed to verify magic link');
+};
+
+export const fetchSession = async (sessionToken) => {
+  const response = await fetch(`${API_BASE}/auth/session`, {
+    headers: withSession(sessionToken),
+  });
+
+  return parseResponse(response, 'Failed to restore session');
+};
+
+export const logoutSession = async (sessionToken) => {
+  const response = await fetch(`${API_BASE}/auth/logout`, {
+    method: 'POST',
+    headers: withSession(sessionToken),
+  });
+
+  return parseResponse(response, 'Failed to log out');
+};
+
+export const completeOnboarding = async (sessionToken, payload) => {
+  const response = await fetch(`${API_BASE}/onboarding/complete`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...withSession(sessionToken),
+    },
+    body: JSON.stringify(payload),
+  });
+
+  return parseResponse(response, 'Failed to complete onboarding');
+};
+
+export const updateAccount = async (sessionToken, payload) => {
+  const response = await fetch(`${API_BASE}/account`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      ...withSession(sessionToken),
+    },
+    body: JSON.stringify(payload),
+  });
+
+  return parseResponse(response, 'Failed to update account');
+};
+
+export const fetchWorkspaceMembers = async (sessionToken, workspaceId) => {
+  const response = await fetch(`${API_BASE}/workspaces/${workspaceId}/members`, {
+    headers: withSession(sessionToken),
+  });
+
+  return parseResponse(response, 'Failed to load workspace members');
+};
+
+export const createWorkspace = async (sessionToken, payload) => {
+  const response = await fetch(`${API_BASE}/workspaces`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...withSession(sessionToken),
+    },
+    body: JSON.stringify(payload),
+  });
+
+  return parseResponse(response, 'Failed to create workspace');
+};
+
+export const updateWorkspace = async (sessionToken, workspaceId, payload) => {
+  const response = await fetch(`${API_BASE}/workspaces/${workspaceId}`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      ...withSession(sessionToken),
+    },
+    body: JSON.stringify(payload),
+  });
+
+  return parseResponse(response, 'Failed to update workspace');
+};
+
+export const fetchNotes = async (sessionToken, workspaceId) => {
+  const response = await fetch(`${API_BASE}/notes`, {
+    headers: withWorkspace(sessionToken, workspaceId),
+  });
+
   return parseResponse(response, 'Failed to fetch notes');
 };
 
-export const createNote = async (note) => {
-  const response = await fetch(API_URL, {
+export const createNote = async (sessionToken, workspaceId, note) => {
+  const response = await fetch(`${API_BASE}/notes`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(note),
+    headers: {
+      'Content-Type': 'application/json',
+      ...withWorkspace(sessionToken, workspaceId),
+    },
+    body: JSON.stringify({
+      workspaceId,
+      ...note,
+    }),
   });
 
   return parseResponse(response, 'Failed to create note');
 };
 
-export const updateNote = async (id, note) => {
-  const response = await fetch(`${API_URL}/${id}`, {
+export const updateNote = async (sessionToken, workspaceId, noteId, note) => {
+  const response = await fetch(`${API_BASE}/notes/${noteId}`, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      ...withWorkspace(sessionToken, workspaceId),
+    },
     body: JSON.stringify({
+      workspaceId,
       localId: note.localId,
       title: note.title,
       content: note.content,
       coverImage: note.coverImage,
+      status: note.status,
+      tags: note.tags,
+      favorite: note.favorite,
+      archived: note.archived,
+      lastViewedAt: note.lastViewedAt,
     }),
   });
 
   return parseResponse(response, 'Failed to update note');
 };
 
-export const deleteNote = async (id) => {
-  const response = await fetch(`${API_URL}/${id}`, {
+export const deleteNote = async (sessionToken, workspaceId, noteId) => {
+  const response = await fetch(`${API_BASE}/notes/${noteId}`, {
     method: 'DELETE',
+    headers: withWorkspace(sessionToken, workspaceId),
   });
 
   return parseResponse(response, 'Failed to delete note');

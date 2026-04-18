@@ -9,16 +9,20 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  min-height: 24px;
-  padding: 0 6px;
-  border-radius: 4px;
-  background: var(--bg-hover);
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.78);
   color: var(--text-primary);
   cursor: pointer;
+  transition: transform 120ms ease, background 120ms ease, box-shadow 120ms ease;
 }
 
 .note-link-anchor:hover {
-  background: var(--bg-active);
+  background: var(--bg-surface-strong);
+  transform: translateY(-1px);
+  box-shadow: 0 10px 22px rgba(120, 89, 63, 0.08);
 }
 
 .note-icon {
@@ -35,29 +39,36 @@
 
 .note-link-card {
   width: 320px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.84);
+  border-radius: 24px;
   overflow: hidden;
-  background: var(--bg-page);
+  background: rgba(255, 252, 248, 0.94);
   position: relative;
   cursor: pointer;
+  box-shadow: 0 16px 34px rgba(120, 89, 63, 0.1);
+  transition: transform 120ms ease, box-shadow 120ms ease;
+}
+
+.note-link-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 18px 36px rgba(120, 89, 63, 0.14);
 }
 
 .note-link-cover {
-  height: 96px;
+  height: 112px;
   background-size: cover;
   background-position: center;
   border-bottom: 1px solid var(--border);
 }
 
 .note-link-content {
-  padding: 12px;
+  padding: 16px;
 }
 
 .note-link-header h4 {
   margin: 0;
   font-size: 16px;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .note-date {
@@ -73,16 +84,16 @@
 
 .view-toggle-btn-inline,
 .view-toggle-btn-card {
-  height: 24px;
-  padding: 0 6px;
+  height: 28px;
+  padding: 0 10px;
   border: 1px solid var(--border);
-  border-radius: 4px;
-  background: var(--bg-page);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.84);
   color: var(--text-secondary);
 }
 
 .view-toggle-btn-card {
   position: absolute;
-  top: 8px;
-  right: 8px;
+  top: 12px;
+  right: 12px;
 }
