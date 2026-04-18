@@ -1,41 +1,50 @@
-import React, { useEffect, useState, forwardRef, useImperativeHandle } from 'react';
-import './SlashMenu.css'; // We will add styles later
+import React, { forwardRef, useImperativeHandle, useState } from 'react';
+import './SlashMenu.css';
 
-export default forwardRef((props, ref) => {
+const SlashMenu = forwardRef(function SlashMenu(props, ref) {
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const itemCount = props.items.length;
+  const currentIndex = props.items[selectedIndex] ? selectedIndex : 0;
 
   const selectItem = (index) => {
     const item = props.items[index];
-    if (item) props.command(item);
+    if (item) {
+      props.command(item);
+    }
   };
-
-  useEffect(() => setSelectedIndex(0), [props.items]);
 
   useImperativeHandle(ref, () => ({
     onKeyDown: ({ event }) => {
+      if (!itemCount) {
+        return false;
+      }
+
       if (event.key === 'ArrowUp') {
-        setSelectedIndex((selectedIndex + props.items.length - 1) % props.items.length);
+        setSelectedIndex((currentIndex + itemCount - 1) % itemCount);
         return true;
       }
+
       if (event.key === 'ArrowDown') {
-        setSelectedIndex((selectedIndex + 1) % props.items.length);
+        setSelectedIndex((currentIndex + 1) % itemCount);
         return true;
       }
+
       if (event.key === 'Enter') {
-        selectItem(selectedIndex);
+        selectItem(currentIndex);
         return true;
       }
+
       return false;
     },
   }));
 
   return (
     <div className="slash-menu">
-      {props.items.length ? (
+      {itemCount ? (
         props.items.map((item, index) => (
           <button
-            key={index}
-            className={`slash-item ${index === selectedIndex ? 'is-selected' : ''}`}
+            key={`${item.title}-${index}`}
+            className={`slash-item ${index === currentIndex ? 'is-selected' : ''}`}
             onClick={() => selectItem(index)}
           >
             {item.element}
@@ -47,3 +56,5 @@ export default forwardRef((props, ref) => {
     </div>
   );
 });
+
+export default SlashMenu;

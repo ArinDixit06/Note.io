@@ -1,22 +1,20 @@
 import React from 'react';
 
-const buildCoverStyle = (coverImage) => {
-  if (!coverImage) {
-    return {
-      background:
-        'linear-gradient(135deg, rgba(249,115,22,0.18), rgba(8,145,178,0.12) 55%, rgba(15,23,42,0.9))',
-    };
-  }
+const toneOrder = ['gray', 'brown', 'orange', 'yellow', 'green', 'blue', 'purple', 'pink', 'red'];
 
-  if (coverImage.startsWith('http')) {
-    return {
-      backgroundImage: `url(${coverImage})`,
-    };
-  }
+const getTagTone = (value = '') => {
+  const index = value.length % toneOrder.length;
+  return toneOrder[index];
+};
 
-  return {
-    background: coverImage,
-  };
+const getStatusTone = (status = '') => {
+  const normalized = status.toLowerCase();
+
+  if (normalized.includes('publish')) return 'green';
+  if (normalized.includes('review')) return 'blue';
+  if (normalized.includes('block')) return 'red';
+  if (normalized.includes('draft')) return 'gray';
+  return 'brown';
 };
 
 const NoteList = ({ notes, onNoteClick, emptyMessage = 'No notes yet. Create one to get started!' }) => {
@@ -25,35 +23,38 @@ const NoteList = ({ notes, onNoteClick, emptyMessage = 'No notes yet. Create one
   }
 
   return (
-    <div className="note-grid">
+    <div className="note-list">
       {notes.map((note) => {
-        const previewText = note.content?.replace(/<[^>]+>/g, ' ').trim() || 'No content yet.';
+        const previewText = note.content?.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim() || 'No content yet.';
 
         return (
-          <article key={note._id} className="note-card" onClick={() => onNoteClick(note)}>
-            <div className="note-card-cover" style={buildCoverStyle(note.coverImage)}>
-              <span className="note-status-chip">{note.status}</span>
-              {note.favorite ? <span className="favorite-badge">Starred</span> : null}
+          <button key={note._id} className="note-row" onClick={() => onNoteClick(note)}>
+            <div className="note-row-main">
+              <div className="note-row-title">
+                <span className="note-row-icon">{note.favorite ? '⭐' : '📄'}</span>
+                <span>{note.title || 'Untitled'}</span>
+              </div>
+              <div className="note-row-meta">
+                <span>{note.ownerName}</span>
+                <span>{note.workspace}</span>
+                <span>{new Date(note.updatedAt || note.createdAt || 0).toLocaleDateString()}</span>
+              </div>
             </div>
 
-            <div className="note-card-content">
-              <div className="note-card-meta">
-                <small>{note.workspace}</small>
-                <small>{note.ownerName}</small>
-              </div>
-              <h3>{note.title || 'Untitled'}</h3>
-              <div className="note-card-preview">{previewText.slice(0, 120)}</div>
-              <div className="note-card-tags">
-                {(note.tags || []).slice(0, 3).map((tag) => (
-                  <span key={`${note._id}-${tag}`}>{tag}</span>
-                ))}
-              </div>
-              <div className="note-card-footer">
-                <span>{new Date(note.updatedAt || note.createdAt || Date.now()).toLocaleDateString()}</span>
-                <span>{note.archived ? 'Archived' : 'Live'}</span>
-              </div>
+            <div className="note-row-preview">{previewText.slice(0, 140)}</div>
+
+            <div className="note-row-properties">
+              <span className={`property-chip property-chip-${getStatusTone(note.status)}`}>
+                {note.status}
+              </span>
+              {(note.tags || []).slice(0, 3).map((tag) => (
+                <span key={`${note._id}-${tag}`} className={`property-chip property-chip-${getTagTone(tag)}`}>
+                  {tag}
+                </span>
+              ))}
+              {note.archived ? <span className="property-chip property-chip-gray">Archived</span> : null}
             </div>
-          </article>
+          </button>
         );
       })}
     </div>

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import Sidebar from './components/Sidebar';
 import NoteList from './components/NoteList';
@@ -32,6 +32,13 @@ const sortNotes = (items) =>
     return bTime - aTime;
   });
 
+const hydrateNotes = (rawNotes, metaMap, currentProfile) =>
+  sortNotes(
+    (Array.isArray(rawNotes) ? rawNotes : []).map((note) =>
+      mergeNoteWithMeta(note, metaMap, currentProfile)
+    )
+  );
+
 function App() {
   const [profile, setProfile] = useState(DEFAULT_PROFILE);
   const [noteMeta, setNoteMeta] = useState({});
@@ -50,10 +57,6 @@ function App() {
   }, []);
 
   useEffect(() => {
-    loadNotes();
-  }, []);
-
-  useEffect(() => {
     saveProfile(profile);
   }, [profile]);
 
@@ -61,14 +64,7 @@ function App() {
     saveNoteMeta(noteMeta);
   }, [noteMeta]);
 
-  const hydrateNotes = (rawNotes, metaMap = noteMeta, currentProfile = profile) =>
-    sortNotes(
-      (Array.isArray(rawNotes) ? rawNotes : []).map((note) =>
-        mergeNoteWithMeta(note, metaMap, currentProfile)
-      )
-    );
-
-  const loadNotes = async () => {
+  const loadNotes = useCallback(async () => {
     try {
       const currentProfile = loadProfile();
       const currentMeta = loadNoteMeta();
@@ -81,7 +77,11 @@ function App() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadNotes();
+  }, [loadNotes]);
 
   const selectedNote = useMemo(
     () => notes.find((note) => note._id === selectedNoteId) || null,
@@ -123,16 +123,14 @@ function App() {
     return { favorites, archived, owned, active };
   }, [notes, profile.id]);
 
-  const recentNotes = useMemo(
-    () =>
-      sortNotes(notes.filter((note) => !note.archived)).slice(0, 3),
-    [notes]
-  );
+  const recentNotes = useMemo(() => sortNotes(notes.filter((note) => !note.archived)).slice(0, 3), [notes]);
 
   const updateLocalNoteState = (updatedNote) => {
     setNotes((prevNotes) =>
       hydrateNotes(
-        prevNotes.map((note) => (note._id === updatedNote._id ? updatedNote : note))
+        prevNotes.map((note) => (note._id === updatedNote._id ? updatedNote : note)),
+        noteMeta,
+        profile
       )
     );
     setNoteMeta((prevMeta) => upsertNoteMeta(prevMeta, updatedNote, profile));
@@ -166,7 +164,7 @@ function App() {
         profile
       );
 
-      setNotes((prevNotes) => hydrateNotes([enrichedNote, ...prevNotes]));
+      setNotes((prevNotes) => hydrateNotes([enrichedNote, ...prevNotes], noteMeta, profile));
       setNoteMeta((prevMeta) => upsertNoteMeta(prevMeta, enrichedNote, profile));
       setSelectedNoteId(enrichedNote._id);
     } catch (error) {
@@ -259,6 +257,7 @@ function App() {
       <main className="main-content">
         {selectedNote ? (
           <NoteEditor
+            key={selectedNote._id}
             note={selectedNote}
             profile={profile}
             onUpdate={handleUpdate}

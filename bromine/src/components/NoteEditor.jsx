@@ -17,19 +17,28 @@ import NoteLink from '../extensions/NoteLink';
 import NotePicker from './NotePicker';
 
 const COVERS = [
-  'linear-gradient(90deg, #fb7185 0%, #fdba74 45%, #fde68a 100%)',
-  'linear-gradient(120deg, #38bdf8 0%, #0f172a 100%)',
-  'linear-gradient(120deg, #22c55e 0%, #0f766e 100%)',
-  'linear-gradient(120deg, #c084fc 0%, #f43f5e 100%)',
-  'linear-gradient(120deg, #94a3b8 0%, #111827 100%)',
-  '#f97316',
-  '#0891b2',
-  '#14b8a6',
-  '#111827',
-  '#475569',
+  '#f7f6f3',
+  '#f1f0ef',
+  '#edf3ec',
+  '#e7f3f8',
+  '#f4f0fd',
+  '#fbe8f7',
+  '#fde8e8',
+  '#fbecdd',
+  '#fef3db',
+  '#f4eeee',
 ];
 
 const STATUSES = ['Draft', 'In Review', 'Published', 'Blocked'];
+
+const statusTone = (status) => {
+  const normalized = status.toLowerCase();
+  if (normalized.includes('publish')) return 'green';
+  if (normalized.includes('review')) return 'blue';
+  if (normalized.includes('block')) return 'red';
+  if (normalized.includes('draft')) return 'gray';
+  return 'brown';
+};
 
 const NoteEditor = ({ note, profile, onUpdate, onDelete, onBack, allNotes, onNavigate }) => {
   const [title, setTitle] = useState(note.title || '');
@@ -43,16 +52,6 @@ const NoteEditor = ({ note, profile, onUpdate, onDelete, onBack, allNotes, onNav
   const [favorite, setFavorite] = useState(Boolean(note.favorite));
   const [archived, setArchived] = useState(Boolean(note.archived));
   const titleRef = useRef(null);
-
-  useEffect(() => {
-    setTitle(note.title || '');
-    setCover(note.coverImage || '');
-    setWorkspace(note.workspace || profile.workspaceName);
-    setStatus(note.status || 'Draft');
-    setTagsInput((note.tags || []).join(', '));
-    setFavorite(Boolean(note.favorite));
-    setArchived(Boolean(note.archived));
-  }, [note, profile.workspaceName]);
 
   const commit = (patch = {}, editorInstance = editor) => {
     onUpdate({
@@ -78,10 +77,7 @@ const NoteEditor = ({ note, profile, onUpdate, onDelete, onBack, allNotes, onNav
 
   const adjustTitleHeight = () => {
     const textarea = titleRef.current;
-    if (!textarea) {
-      return;
-    }
-
+    if (!textarea) return;
     textarea.style.height = 'auto';
     textarea.style.height = `${textarea.scrollHeight}px`;
   };
@@ -97,9 +93,7 @@ const NoteEditor = ({ note, profile, onUpdate, onDelete, onBack, allNotes, onNav
   };
 
   const insertLinkedNote = (selectedNote) => {
-    if (!editor || !pickerRange) {
-      return;
-    }
+    if (!editor || !pickerRange) return;
 
     const previewText = selectedNote.content?.replace(/<[^>]+>/g, ' ').slice(0, 100) || 'No preview';
 
@@ -173,7 +167,7 @@ const NoteEditor = ({ note, profile, onUpdate, onDelete, onBack, allNotes, onNav
           setPickerRange(range.from);
           setShowNotePicker(true);
         },
-        element: <span>Link Note</span>,
+        element: <span>🔗 Link Note</span>,
       },
     ].filter((item) => item.title.toLowerCase().includes(query.toLowerCase()));
 
@@ -225,7 +219,6 @@ const NoteEditor = ({ note, profile, onUpdate, onDelete, onBack, allNotes, onNav
           if (instance.isActive('listItem')) {
             return instance.chain().splitListItem('listItem').run();
           }
-
           return false;
         },
       };
@@ -246,9 +239,7 @@ const NoteEditor = ({ note, profile, onUpdate, onDelete, onBack, allNotes, onNav
       CustomKeymap,
       NoteLink.configure({
         onNavigate: (noteId) => {
-          if (onNavigate) {
-            onNavigate(noteId);
-          }
+          if (onNavigate) onNavigate(noteId);
         },
       }),
     ],
@@ -259,9 +250,7 @@ const NoteEditor = ({ note, profile, onUpdate, onDelete, onBack, allNotes, onNav
     },
   });
 
-  if (!editor) {
-    return null;
-  }
+  if (!editor) return null;
 
   return (
     <div className="editor-shell">
@@ -271,11 +260,11 @@ const NoteEditor = ({ note, profile, onUpdate, onDelete, onBack, allNotes, onNav
           style={cover.startsWith('http') ? { backgroundImage: `url(${cover})` } : { background: cover }}
         />
         <div className="cover-controls">
-          <button className="cover-btn" onClick={() => setShowCoverPicker((value) => !value)}>
-            Change Cover
+          <button className="button" onClick={() => setShowCoverPicker((value) => !value)}>
+            Change cover
           </button>
           <button
-            className="cover-btn remove-btn"
+            className="button"
             onClick={() => {
               setCover('');
               commit({ coverImage: '' });
@@ -306,102 +295,61 @@ const NoteEditor = ({ note, profile, onUpdate, onDelete, onBack, allNotes, onNav
         />
       ) : null}
 
-      <div className="editor-container">
-        <div className="editor-header">
-          <button onClick={onBack} className="secondary-btn">
-            Back
-          </button>
-          <div className="editor-actions">
-            <button
-              onClick={() => {
-                const nextValue = !favorite;
-                setFavorite(nextValue);
-                commit({ favorite: nextValue });
-              }}
-              className="secondary-btn"
-            >
-              {favorite ? 'Unfavorite' : 'Favorite'}
+      <div className="page-shell">
+        <div className="page-content">
+          <div className="breadcrumb">Workspace / {workspace} / {note.title || 'Untitled'}</div>
+
+          <div className="editor-header">
+            <button onClick={onBack} className="button">
+              Back
             </button>
-            <button
-              onClick={() => {
-                const nextValue = !archived;
-                setArchived(nextValue);
-                commit({ archived: nextValue });
-              }}
-              className="secondary-btn"
-            >
-              {archived ? 'Restore' : 'Archive'}
-            </button>
-            <button
-              onClick={() => {
-                if (window.confirm('Delete note?')) onDelete(note._id);
-              }}
-              className="delete-btn"
-            >
-              Delete
-            </button>
+            <div className="editor-actions">
+              <button
+                onClick={() => {
+                  const nextValue = !favorite;
+                  setFavorite(nextValue);
+                  commit({ favorite: nextValue });
+                }}
+                className="button"
+              >
+                {favorite ? 'Unfavorite' : 'Favorite'}
+              </button>
+              <button
+                onClick={() => {
+                  const nextValue = !archived;
+                  setArchived(nextValue);
+                  commit({ archived: nextValue });
+                }}
+                className="button"
+              >
+                {archived ? 'Restore' : 'Archive'}
+              </button>
+              <button
+                onClick={() => {
+                  if (window.confirm('Delete note?')) onDelete(note._id);
+                }}
+                className="button button-danger"
+              >
+                Delete
+              </button>
+            </div>
           </div>
-        </div>
 
-        {!cover ? (
-          <button
-            className="add-cover-btn"
-            onClick={() => {
-              setShowCoverPicker(true);
-              setCover(COVERS[0]);
-              commit({ coverImage: COVERS[0] });
-            }}
-          >
-            Add Cover
-          </button>
-        ) : null}
-
-        <div className="editor-meta-panel">
-          <div className="meta-card profile-owner">
-            <span className="meta-label">Owner Profile</span>
-            <strong>{profile.fullName}</strong>
-            <small>{profile.role}</small>
-          </div>
-          <label className="meta-card">
-            <span className="meta-label">Workspace</span>
-            <input
-              value={workspace}
-              onChange={(event) => {
-                const nextValue = event.target.value;
-                setWorkspace(nextValue);
-                commit({ workspace: nextValue });
-              }}
-            />
-          </label>
-          <label className="meta-card">
-            <span className="meta-label">Status</span>
-            <select
-              value={status}
-              onChange={(event) => {
-                const nextValue = event.target.value;
-                setStatus(nextValue);
-                commit({ status: nextValue });
+          {!cover ? (
+            <button
+              className="add-cover-btn"
+              onClick={() => {
+                setShowCoverPicker(true);
+                setCover(COVERS[0]);
+                commit({ coverImage: COVERS[0] });
               }}
             >
-              {STATUSES.map((item) => (
-                <option key={item} value={item}>
-                  {item}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="meta-card meta-card-wide">
-            <span className="meta-label">Tags</span>
-            <input
-              value={tagsInput}
-              onChange={(event) => setTagsInput(event.target.value)}
-              onBlur={() => commit()}
-              placeholder="docs, planning, sprint"
-            />
-          </label>
-        </div>
+              Add cover
+            </button>
+          ) : null}
 
-        <div className="editor-workspace">
+          <div className="page-icon">📄</div>
+
           <textarea
             ref={titleRef}
             placeholder="Untitled"
@@ -416,13 +364,75 @@ const NoteEditor = ({ note, profile, onUpdate, onDelete, onBack, allNotes, onNav
             spellCheck={false}
           />
 
+          <div className="property-table">
+            <label className="property-row">
+              <span className="property-name">Owner</span>
+              <span className="property-value property-value-text">
+                {profile.fullName} · {profile.role}
+              </span>
+            </label>
+            <label className="property-row">
+              <span className="property-name">Workspace</span>
+              <input
+                value={workspace}
+                onChange={(event) => {
+                  const nextValue = event.target.value;
+                  setWorkspace(nextValue);
+                  commit({ workspace: nextValue });
+                }}
+              />
+            </label>
+            <label className="property-row">
+              <span className="property-name">Status</span>
+              <select
+                value={status}
+                onChange={(event) => {
+                  const nextValue = event.target.value;
+                  setStatus(nextValue);
+                  commit({ status: nextValue });
+                }}
+              >
+                {STATUSES.map((item) => (
+                  <option key={item} value={item}>
+                    {item}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="property-row property-row-tags">
+              <span className="property-name">Tags</span>
+              <div className="property-tags-field">
+                <input
+                  value={tagsInput}
+                  onChange={(event) => setTagsInput(event.target.value)}
+                  onBlur={() => commit()}
+                  placeholder="docs, planning, sprint"
+                />
+                <div className="property-inline-chips">
+                  {tagsInput
+                    .split(',')
+                    .map((tag) => tag.trim())
+                    .filter(Boolean)
+                    .slice(0, 4)
+                    .map((tag) => (
+                      <span key={tag} className="property-chip property-chip-blue">
+                        {tag}
+                      </span>
+                    ))}
+                </div>
+              </div>
+            </label>
+          </div>
+
           <div className="title-support">
-            <span>{workspace}</span>
-            <span>{status}</span>
-            <span>{profile.fullName}</span>
+            <span className={`property-chip property-chip-${statusTone(status)}`}>{status}</span>
+            <span className="meta-inline">{workspace}</span>
+            <span className="meta-inline">{profile.fullName}</span>
           </div>
 
           <EditorContent editor={editor} className="tiptap-editor" />
+
+          <div className="comment-zone">Add comment…</div>
         </div>
       </div>
     </div>

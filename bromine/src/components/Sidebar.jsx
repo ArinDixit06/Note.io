@@ -1,10 +1,10 @@
 import React from 'react';
 
 const navItems = [
-  { id: 'all', label: 'All Notes', icon: 'Pages' },
-  { id: 'owned', label: 'My Pages', icon: 'Owned' },
-  { id: 'favorites', label: 'Favorites', icon: 'Starred' },
-  { id: 'archived', label: 'Archive', icon: 'Vault' },
+  { id: 'all', label: 'All Notes', icon: '📄' },
+  { id: 'owned', label: 'My Pages', icon: '🙋' },
+  { id: 'favorites', label: 'Favorites', icon: '⭐' },
+  { id: 'archived', label: 'Archive', icon: '🗃️' },
 ];
 
 const Sidebar = ({
@@ -30,14 +30,12 @@ const Sidebar = ({
 
       <aside className={`sidebar ${isOpen ? '' : 'collapsed'}`}>
         <div className="brand">
-          <p>Bromine</p>
+          <p>Workspace</p>
           <h2>{profile.workspaceName}</h2>
         </div>
 
         <section className="profile-card">
-          <div className="profile-avatar" style={{ '--profile-accent': profile.accent }}>
-            {profile.avatarSeed}
-          </div>
+          <div className="profile-avatar">{profile.avatarSeed}</div>
           <div className="profile-copy">
             <strong>{profile.fullName}</strong>
             <span>{profile.role}</span>
@@ -50,7 +48,7 @@ const Sidebar = ({
             type="text"
             value={searchQuery}
             onChange={(event) => onSearchChange(event.target.value)}
-            placeholder="Search titles, tags, status..."
+            placeholder="Search pages"
           />
         </label>
 
@@ -61,7 +59,7 @@ const Sidebar = ({
               onClick={() => onViewChange(item.id)}
               className={`menu-item ${activeView === item.id ? 'active' : ''}`}
             >
-              <span>{item.icon}</span>
+              <span className="menu-icon">{item.icon}</span>
               <span>{item.label}</span>
             </button>
           ))}
@@ -70,7 +68,7 @@ const Sidebar = ({
         <section className="profile-settings">
           <div className="settings-heading">
             <p>Profile System</p>
-            <small>Core workspace identity</small>
+            <small>Core identity across every page</small>
           </div>
 
           <label>
@@ -98,11 +96,11 @@ const Sidebar = ({
             />
           </label>
           <label>
-            <span>Accent</span>
+            <span>Email</span>
             <input
-              type="color"
-              value={profile.accent}
-              onChange={(event) => onProfileChange({ accent: event.target.value })}
+              type="email"
+              value={profile.email}
+              onChange={(event) => onProfileChange({ email: event.target.value })}
             />
           </label>
         </section>
