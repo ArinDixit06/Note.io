@@ -245,5 +245,18 @@ export const deleteNoteAttachment = async (sessionToken, workspaceId, noteId, at
   return parseResponse(response, 'Failed to delete PDF');
 };
 
+export const saveNoteAttachmentHighlights = async (sessionToken, workspaceId, noteId, attachmentId, payload) => {
+  const response = await fetch(`${API_BASE}/notes/${noteId}/attachments/${attachmentId}/highlights`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      ...withWorkspace(sessionToken, workspaceId),
+    },
+    body: JSON.stringify(payload),
+  });
+
+  return parseResponse(response, 'Failed to save PDF highlights');
+};
+
 export const getAttachmentDownloadUrl = (sessionToken, workspaceId, noteId, attachmentId) =>
   `${API_BASE}/notes/${noteId}/attachments/${attachmentId}/download?workspaceId=${encodeURIComponent(workspaceId)}&sessionToken=${encodeURIComponent(sessionToken)}`;

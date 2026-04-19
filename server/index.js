@@ -181,7 +181,13 @@ const mapAttachment = (row, includeData = false) => ({
   mimeType: row.mime_type,
   fileSizeBytes: row.file_size_bytes,
   createdAt: row.created_at,
-  ...(includeData ? { dataBase64: row.data_base64 } : {}),
+  highlights: ensureArray(row.highlights_json),
+  ...(includeData
+    ? {
+        dataBase64: row.data_base64,
+        sourceDataBase64: row.source_data_base64 || row.data_base64,
+      }
+    : {}),
 });
 
 const sendServerError = (res, error) =>
@@ -464,7 +470,7 @@ const getAttachmentMetaByNoteIds = async (workspaceId, noteIds) => {
   const attachments = ensureSuccess(
     await supabase
       .from('note_attachments')
-      .select('id, note_id, workspace_id, file_name, mime_type, file_size_bytes, created_at')
+      .select('id, note_id, workspace_id, file_name, mime_type, file_size_bytes, created_at, highlights_json')
       .eq('workspace_id', workspaceId)
       .in('note_id', uniqueNoteIds)
       .order('created_at', { ascending: true })
@@ -1207,6 +1213,8 @@ app.post('/api/notes/:id/attachments', async (req, res) => {
           mime_type: mimeType,
           file_size_bytes: fileSizeBytes,
           data_base64: dataBase64,
+          source_data_base64: dataBase64,
+          highlights_json: [],
           created_by_account_id: access.session.account_id,
         })
         .select()
@@ -1236,6 +1244,49 @@ app.get('/api/notes/:noteId/attachments/:attachmentId/download', async (req, res
     res.setHeader('Content-Type', attachment.mime_type || 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="${sanitizeFileName(attachment.file_name) || 'attachment.pdf'}"`);
     res.send(Buffer.from(attachment.data_base64, 'base64'));
+  } catch (error) {
+    sendServerError(res, error);
+  }
+});
+
+app.put('/api/notes/:noteId/attachments/:attachmentId/highlights', async (req, res) => {
+  try {
+    const access = await requireWorkspaceAccess(req, res);
+
+    if (!access) {
+      return;
+    }
+
+    const attachment = await getAttachmentById(access.workspace.id, req.params.noteId, req.params.attachmentId);
+
+    if (!attachment) {
+      return res.status(404).json({ error: 'Attachment not found' });
+    }
+
+    const nextDataBase64 = normalizeBase64(req.body?.dataBase64);
+    const nextSourceBase64 = normalizeBase64(req.body?.sourceDataBase64) || attachment.source_data_base64 || attachment.data_base64;
+    const highlights = ensureArray(req.body?.highlights);
+
+    if (!nextDataBase64) {
+      return res.status(400).json({ error: 'dataBase64 is required' });
+    }
+
+    const updatedAttachment = ensureSuccess(
+      await supabase
+        .from('note_attachments')
+        .update({
+          data_base64: nextDataBase64,
+          source_data_base64: nextSourceBase64,
+          highlights_json: highlights,
+        })
+        .eq('id', req.params.attachmentId)
+        .eq('note_id', req.params.noteId)
+        .eq('workspace_id', access.workspace.id)
+        .select()
+        .single()
+    );
+
+    res.json(mapAttachment(updatedAttachment, true));
   } catch (error) {
     sendServerError(res, error);
   }

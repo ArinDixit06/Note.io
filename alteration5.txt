@@ -1,0 +1,11 @@
+DO $$
+BEGIN
+  ALTER TABLE public.note_attachments
+    ADD COLUMN IF NOT EXISTS source_data_base64 text NOT NULL DEFAULT '',
+    ADD COLUMN IF NOT EXISTS highlights_json jsonb NOT NULL DEFAULT '[]'::jsonb;
+
+  UPDATE public.note_attachments
+  SET source_data_base64 = data_base64
+  WHERE COALESCE(source_data_base64, '') = '';
+END
+$$;

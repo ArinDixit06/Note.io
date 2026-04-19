@@ -21,6 +21,7 @@ import {
   getAttachmentDownloadUrl,
   logoutSession,
   requestLogin,
+  saveNoteAttachmentHighlights,
   uploadNoteAttachment,
   updateAccount,
   updateNote,
@@ -59,7 +60,7 @@ function Toast({ message, tone = 'error', onDismiss }) {
         borderRadius: 14,
         background: tone === 'error' ? '#fff' : '#fff',
         border: `1px solid ${tone === 'error' ? 'rgba(255,59,48,0.18)' : 'rgba(0,113,227,0.18)'}`,
-        boxShadow: '0 12px 36px rgba(0,0,0,0.14), 0 2px 8px rgba(0,0,0,0.08)',
+        boxShadow: 'none',
         display: 'flex',
         alignItems: 'flex-start',
         gap: 12,
@@ -955,6 +956,26 @@ function App() {
     });
   };
 
+  const handleSaveAttachmentHighlights = async (noteId, attachmentId, payload) => {
+    if (!sessionToken || !currentWorkspace) {
+      return;
+    }
+
+    const attachment = await saveNoteAttachmentHighlights(
+      sessionToken,
+      currentWorkspace.id,
+      noteId,
+      attachmentId,
+      payload
+    );
+
+    mergeNotePatch(noteId, (note) => ({
+      attachments: (note.attachments || []).map((currentAttachment) =>
+        currentAttachment.id === attachmentId ? attachment : currentAttachment
+      ),
+    }));
+  };
+
   useEffect(() => {
     if (!selectedNote || !selectedNote.attachmentCount) {
       return;
@@ -1103,6 +1124,7 @@ function App() {
             onDelete={handleDeleteNote}
             onUploadAttachment={handleUploadAttachment}
             onDeleteAttachment={handleDeleteAttachment}
+            onSaveAttachmentHighlights={handleSaveAttachmentHighlights}
             getAttachmentDownloadUrl={(noteId, attachmentId) =>
               getAttachmentDownloadUrl(sessionToken, currentWorkspace.id, noteId, attachmentId)
             }

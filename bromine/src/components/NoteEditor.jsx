@@ -15,6 +15,7 @@ import SlashCommand from '../extensions/SlashCommand';
 import SlashMenu from './SlashMenu';
 import NoteLink from '../extensions/NoteLink';
 import NotePicker from './NotePicker';
+import PdfAttachmentViewer from './PdfAttachmentViewer';
 
 const COVERS = [
   '#f7f1ea',
@@ -46,14 +47,6 @@ const formatFileSize = (bytes = 0) => {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 };
 
-const getPdfPreviewUrl = (attachment) => {
-  if (!attachment?.dataBase64 || !attachment?.mimeType) {
-    return null;
-  }
-
-  return `data:${attachment.mimeType};base64,${attachment.dataBase64}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`;
-};
-
 const NoteEditor = ({
   note,
   account,
@@ -64,6 +57,7 @@ const NoteEditor = ({
   onDelete,
   onUploadAttachment,
   onDeleteAttachment,
+  onSaveAttachmentHighlights,
   getAttachmentDownloadUrl,
   onBack,
   allNotes,
@@ -540,10 +534,7 @@ const NoteEditor = ({
 
             {note.attachments?.length ? (
               <div className="attachment-list">
-                {note.attachments.map((attachment) => {
-                  const previewUrl = getPdfPreviewUrl(attachment);
-
-                  return (
+                {note.attachments.map((attachment) => (
                     <article key={attachment.id} className="attachment-card">
                       <div className="attachment-card-header">
                         <div>
@@ -551,13 +542,6 @@ const NoteEditor = ({
                           <span>{formatFileSize(attachment.fileSizeBytes)} • PDF</span>
                         </div>
                         <div className="attachment-actions">
-                          <a
-                            className="button"
-                            href={getAttachmentDownloadUrl(note._id, attachment.id)}
-                            download={attachment.fileName}
-                          >
-                            Download
-                          </a>
                           <button
                             className="button button-danger"
                             onClick={async () => {
@@ -573,35 +557,19 @@ const NoteEditor = ({
                         </div>
                       </div>
 
-                      {previewUrl ? (
-                        <div className="attachment-preview-shell">
-                          <div className="attachment-preview-toolbar">
-                            <div className="attachment-preview-dots" aria-hidden="true">
-                              <span />
-                              <span />
-                              <span />
-                            </div>
-                            <div className="attachment-preview-meta">
-                              <span className="attachment-preview-pill">Inline preview</span>
-                              <span className="attachment-preview-caption">Optimized for reading</span>
-                            </div>
-                          </div>
-
-                          <div className="attachment-preview-stage">
-                            <iframe
-                              title={attachment.fileName}
-                              src={previewUrl}
-                              className="attachment-preview"
-                              loading="lazy"
-                            />
-                          </div>
-                        </div>
+                      {attachment?.dataBase64 ? (
+                        <PdfAttachmentViewer
+                          attachment={attachment}
+                          onSaveHighlights={(attachmentId, payload) =>
+                            onSaveAttachmentHighlights?.(note._id, attachmentId, payload)
+                          }
+                          getAttachmentDownloadUrl={(attachmentId) => getAttachmentDownloadUrl(note._id, attachmentId)}
+                        />
                       ) : (
                         <p className="empty-state">Loading PDF preview...</p>
                       )}
                     </article>
-                  );
-                })}
+                ))}
               </div>
             ) : (
               <p className="empty-state">Attach a PDF to keep manuals, invoices, or reading material inside this note.</p>

@@ -923,3 +923,179 @@ button:disabled { opacity: 0.46; cursor: not-allowed; transform: none !important
   .attachment-preview-toolbar, .attachment-preview-meta { align-items: flex-start; flex-direction: column; }
   .attachment-preview { height: 340px; }
 }
+
+/* Flat UI override */
+:root {
+  --apple-shadow-xs: none;
+  --apple-shadow-sm: none;
+  --apple-shadow-md: none;
+  --apple-shadow-lg: none;
+  --shadow-soft: none;
+  --shadow-card: none;
+}
+
+.sidebar,
+.sidebar-toggle-btn,
+.main-content,
+.dashboard-hero,
+.button,
+.new-note-btn,
+.auth-card,
+.delivery-card,
+.onboarding-card,
+.auth-delivery-card,
+.attachment-panel,
+.attachment-card,
+.attachment-preview-shell,
+.attachment-preview,
+.cover-picker-menu,
+.slash-menu,
+.note-picker-modal,
+.note-link-card,
+.note-link-anchor,
+.view-toggle-btn-inline,
+.view-toggle-btn-card,
+.stat-card,
+.use-case-card,
+.template-preview {
+  box-shadow: none !important;
+}
+
+.button:hover,
+.add-cover-btn:hover,
+.note-row:hover,
+.recent-item:hover,
+.stat-card:hover,
+.use-case-card:hover,
+.auth-primary-button:hover:not(:disabled),
+.note-link-anchor:hover,
+.note-link-card:hover,
+.view-toggle-btn-inline:hover,
+.view-toggle-btn-card:hover {
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+.attachment-panel,
+.attachment-card,
+.attachment-preview-shell,
+.attachment-preview-toolbar,
+.attachment-preview-stage {
+  background: #fff;
+}
+
+.pdf-attachment-viewer {
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.pdf-toolbar {
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.pdf-toolbar-meta {
+  flex: 1;
+}
+
+.pdf-highlight-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+  background: #fff;
+}
+
+.pdf-color-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.pdf-color-swatch {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border-radius: 999px;
+  border: 1px solid rgba(15, 23, 42, 0.14);
+  background: var(--swatch-color);
+}
+
+.pdf-color-swatch.active {
+  outline: 2px solid rgba(15, 23, 42, 0.8);
+  outline-offset: 1px;
+}
+
+.pdf-color-swatch:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+
+.pdf-document-stage {
+  display: grid;
+  gap: 18px;
+  justify-items: center;
+  padding: 18px;
+}
+
+.pdf-page {
+  position: relative;
+  max-width: 100%;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: #fff;
+  overflow: hidden;
+}
+
+.pdf-page-image {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.pdf-text-layer,
+.pdf-highlight-layer {
+  position: absolute;
+  inset: 0;
+}
+
+.pdf-text-layer {
+  z-index: 2;
+  user-select: text;
+}
+
+.pdf-highlight-layer {
+  z-index: 1;
+  pointer-events: none;
+}
+
+.pdf-text-span {
+  position: absolute;
+  display: block;
+  white-space: pre;
+  color: transparent;
+  transform-origin: left top;
+}
+
+.pdf-text-span::selection {
+  background: rgba(0, 113, 227, 0.2);
+}
+
+.pdf-highlight-group {
+  position: absolute;
+  inset: 0;
+}
+
+.pdf-highlight-rect {
+  position: absolute;
+  border: 0;
+  padding: 0;
+  opacity: 0.55;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.pdf-highlight-rect:hover {
+  opacity: 0.8;
+}

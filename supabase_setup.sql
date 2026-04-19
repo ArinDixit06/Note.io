@@ -95,10 +95,35 @@ before update on public.workspaces
 for each row
 execute function public.set_updated_at();
 
+create table if not exists public.note_attachments (
+  id uuid primary key default gen_random_uuid(),
+  workspace_id uuid not null references public.workspaces(id) on delete cascade,
+  note_id uuid not null references public.notes(id) on delete cascade,
+  created_by_account_id uuid references public.accounts(id) on delete set null,
+  file_name text not null,
+  mime_type text not null default 'application/pdf',
+  file_size_bytes integer not null default 0,
+  data_base64 text not null,
+  source_data_base64 text not null default '',
+  highlights_json jsonb not null default '[]'::jsonb,
+  created_at timestamptz not null default now()
+);
+
+alter table public.note_attachments
+  add column if not exists source_data_base64 text not null default '';
+
+alter table public.note_attachments
+  add column if not exists highlights_json jsonb not null default '[]'::jsonb;
+
+update public.note_attachments
+set source_data_base64 = data_base64
+where coalesce(source_data_base64, '') = '';
+
 create index if not exists notes_workspace_id_updated_at_idx on public.notes (workspace_id, updated_at desc);
 create index if not exists workspace_members_account_id_idx on public.workspace_members (account_id, joined_at desc);
 create index if not exists auth_requests_email_created_at_idx on public.auth_requests (email, created_at desc);
 create index if not exists sessions_account_id_idx on public.sessions (account_id, created_at desc);
+create index if not exists note_attachments_workspace_id_note_id_created_at_idx on public.note_attachments (workspace_id, note_id, created_at desc);
 
 alter table public.accounts enable row level security;
 alter table public.workspaces enable row level security;
@@ -106,6 +131,7 @@ alter table public.workspace_members enable row level security;
 alter table public.auth_requests enable row level security;
 alter table public.sessions enable row level security;
 alter table public.notes enable row level security;
+alter table public.note_attachments enable row level security;
 
 drop policy if exists "service role manages accounts" on public.accounts;
 drop policy if exists "service role manages workspaces" on public.workspaces;
@@ -113,6 +139,7 @@ drop policy if exists "service role manages workspace members" on public.workspa
 drop policy if exists "service role manages auth requests" on public.auth_requests;
 drop policy if exists "service role manages sessions" on public.sessions;
 drop policy if exists "service role manages notes" on public.notes;
+drop policy if exists "service role manages note attachments" on public.note_attachments;
 
 create policy "service role manages accounts" on public.accounts for all to service_role using (true) with check (true);
 create policy "service role manages workspaces" on public.workspaces for all to service_role using (true) with check (true);
@@ -120,3 +147,4 @@ create policy "service role manages workspace members" on public.workspace_membe
 create policy "service role manages auth requests" on public.auth_requests for all to service_role using (true) with check (true);
 create policy "service role manages sessions" on public.sessions for all to service_role using (true) with check (true);
 create policy "service role manages notes" on public.notes for all to service_role using (true) with check (true);
+create policy "service role manages note attachments" on public.note_attachments for all to service_role using (true) with check (true);
