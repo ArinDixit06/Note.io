@@ -73,6 +73,7 @@ const PdfAttachmentViewer = ({ attachment, onSaveHighlights, getAttachmentDownlo
   const [activeColorId, setActiveColorId] = useState(HIGHLIGHT_COLORS[0].id);
   const [activeSelection, setActiveSelection] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [currentPageIndex, setCurrentPageIndex] = useState(0);
 
   const highlights = useMemo(() => attachment.highlights || [], [attachment.highlights]);
 
@@ -151,6 +152,11 @@ const PdfAttachmentViewer = ({ attachment, onSaveHighlights, getAttachmentDownlo
   }, [attachment?.dataBase64]);
 
   useEffect(() => {
+    setCurrentPageIndex(0);
+    setActiveSelection(null);
+  }, [attachment?.id, pages.length]);
+
+  useEffect(() => {
     const handleSelectionChange = () => {
       if (!containerRef.current) {
         return;
@@ -214,6 +220,9 @@ const PdfAttachmentViewer = ({ attachment, onSaveHighlights, getAttachmentDownlo
       }, {}),
     [highlights]
   );
+
+  const currentPage = pages[currentPageIndex] || null;
+  const totalPages = pages.length;
 
   const saveHighlights = async (nextHighlights) => {
     setIsSaving(true);
@@ -295,22 +304,52 @@ const PdfAttachmentViewer = ({ attachment, onSaveHighlights, getAttachmentDownlo
         </a>
       </div>
 
+      <div className="pdf-page-nav">
+        <button
+          type="button"
+          className="button"
+          onClick={() => {
+            window.getSelection()?.removeAllRanges();
+            setActiveSelection(null);
+            setCurrentPageIndex((pageIndex) => Math.max(0, pageIndex - 1));
+          }}
+          disabled={currentPageIndex === 0 || isRendering}
+        >
+          Previous
+        </button>
+        <span className="pdf-page-indicator">
+          {totalPages ? `Page ${currentPageIndex + 1} of ${totalPages}` : 'No pages'}
+        </span>
+        <button
+          type="button"
+          className="button"
+          onClick={() => {
+            window.getSelection()?.removeAllRanges();
+            setActiveSelection(null);
+            setCurrentPageIndex((pageIndex) => Math.min(totalPages - 1, pageIndex + 1));
+          }}
+          disabled={!totalPages || currentPageIndex >= totalPages - 1 || isRendering}
+        >
+          Next
+        </button>
+      </div>
+
       <div ref={containerRef} className="attachment-preview-stage pdf-document-stage">
         {isRendering ? <p className="empty-state">Rendering PDF...</p> : null}
 
-        {pages.map((page) => (
+        {currentPage ? (
           <section
-            key={page.pageIndex}
+            key={currentPage.pageIndex}
             className="pdf-page"
-            data-page-index={page.pageIndex}
-            style={{ width: page.width, minHeight: page.height }}
+            data-page-index={currentPage.pageIndex}
+            style={{ width: currentPage.width, minHeight: currentPage.height }}
           >
-            <img src={page.image} alt="" className="pdf-page-image" draggable="false" />
+            <img src={currentPage.image} alt="" className="pdf-page-image" draggable="false" />
 
             <div className="pdf-text-layer" aria-hidden="true">
-              {page.textItems.map((item, index) => (
+              {currentPage.textItems.map((item, index) => (
                 <span
-                  key={`${page.pageIndex}-${index}`}
+                  key={`${currentPage.pageIndex}-${index}`}
                   className="pdf-text-span"
                   style={{
                     left: item.x,
@@ -326,7 +365,7 @@ const PdfAttachmentViewer = ({ attachment, onSaveHighlights, getAttachmentDownlo
             </div>
 
             <div className="pdf-highlight-layer" aria-hidden="true">
-              {(groupedHighlights[page.pageIndex] || []).map((highlight) => {
+              {(groupedHighlights[currentPage.pageIndex] || []).map((highlight) => {
                 const color = HIGHLIGHT_COLORS.find((item) => item.id === highlight.colorId) || HIGHLIGHT_COLORS[0];
 
                 return (
@@ -352,7 +391,7 @@ const PdfAttachmentViewer = ({ attachment, onSaveHighlights, getAttachmentDownlo
               })}
             </div>
           </section>
-        ))}
+        ) : null}
       </div>
     </div>
   );

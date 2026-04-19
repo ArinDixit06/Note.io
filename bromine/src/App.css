@@ -1007,6 +1007,24 @@ button:disabled { opacity: 0.46; cursor: not-allowed; transform: none !important
   background: #fff;
 }
 
+.pdf-page-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+  background: #fff;
+}
+
+.pdf-page-indicator {
+  flex: 1;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--apple-text-secondary);
+}
+
 .pdf-color-row {
   display: flex;
   align-items: center;
@@ -1034,10 +1052,13 @@ button:disabled { opacity: 0.46; cursor: not-allowed; transform: none !important
 }
 
 .pdf-document-stage {
-  display: grid;
-  gap: 18px;
-  justify-items: center;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
   padding: 18px;
+  min-height: 70vh;
+  max-height: 70vh;
+  overflow: auto;
 }
 
 .pdf-page {
@@ -1075,6 +1096,8 @@ button:disabled { opacity: 0.46; cursor: not-allowed; transform: none !important
   display: block;
   white-space: pre;
   color: transparent;
+  -webkit-text-fill-color: transparent;
+  opacity: 0.01;
   transform-origin: left top;
 }
 
