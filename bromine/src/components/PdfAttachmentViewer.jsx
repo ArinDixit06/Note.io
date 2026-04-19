@@ -263,6 +263,14 @@ const PdfAttachmentViewer = ({ attachment, onSaveHighlights, getAttachmentDownlo
     await saveHighlights(highlights.filter((highlight) => highlight.id !== highlightId));
   };
 
+  const handleUndoHighlight = async () => {
+    if (!highlights.length) {
+      return;
+    }
+
+    await saveHighlights(highlights.slice(0, -1));
+  };
+
   return (
     <div className="attachment-preview-shell pdf-attachment-viewer">
       <div className="attachment-preview-toolbar pdf-toolbar">
@@ -299,9 +307,19 @@ const PdfAttachmentViewer = ({ attachment, onSaveHighlights, getAttachmentDownlo
           ))}
         </div>
 
-        <a className="button" href={getAttachmentDownloadUrl(attachment.id)} download={attachment.fileName}>
-          Download
-        </a>
+        <div className="pdf-action-group">
+          <button
+            type="button"
+            className="button"
+            onClick={handleUndoHighlight}
+            disabled={!highlights.length || isSaving}
+          >
+            Undo highlight
+          </button>
+          <a className="button" href={getAttachmentDownloadUrl(attachment.id)} download={attachment.fileName}>
+            Download
+          </a>
+        </div>
       </div>
 
       <div className="pdf-page-nav">

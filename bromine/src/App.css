@@ -1032,6 +1032,12 @@ button:disabled { opacity: 0.46; cursor: not-allowed; transform: none !important
   flex-wrap: wrap;
 }
 
+.pdf-action-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .pdf-color-swatch {
   width: 28px;
   height: 28px;
