@@ -847,10 +847,28 @@ function App() {
 
   if (isBooting) {
     return (
-      <div className="auth-shell">
-        <section className="auth-card">
-          <p className="eyebrow">Booting Bromine</p>
-          <h1>Restoring session and workspace context.</h1>
+      <div className="boot-shell">
+        <section className="boot-card" aria-live="polite">
+          <div className="boot-card-glow" aria-hidden="true" />
+          <div className="boot-signal" aria-hidden="true">
+            <span className="boot-signal-core" />
+            <span className="boot-signal-ring boot-signal-ring-a" />
+            <span className="boot-signal-ring boot-signal-ring-b" />
+          </div>
+          <div className="boot-copy">
+            <p className="eyebrow">Booting Bromine</p>
+            <h1>Restoring session and workspace context.</h1>
+            <p className="boot-description">
+              Pulling your workspace state, recent notes, and session context into place.
+            </p>
+          </div>
+          <div className="boot-progress" aria-hidden="true">
+            <span className="boot-progress-bar" />
+          </div>
+          <div className="boot-status-row">
+            <span className="boot-status-pill">Secure startup</span>
+            <span className="boot-status-text">Synchronizing your last active workspace</span>
+          </div>
         </section>
       </div>
     );

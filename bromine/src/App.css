@@ -112,6 +112,19 @@ input::placeholder, textarea::placeholder { color: var(--apple-text-tertiary); }
   to   { opacity: 1; transform: translateY(0); }
 }
 @keyframes spin { to { transform: rotate(360deg); } }
+@keyframes pulseSoft {
+  0%, 100% { transform: scale(1); opacity: 0.7; }
+  50% { transform: scale(1.08); opacity: 1; }
+}
+@keyframes ripple {
+  0% { transform: scale(0.72); opacity: 0; }
+  28% { opacity: 0.42; }
+  100% { transform: scale(1.22); opacity: 0; }
+}
+@keyframes shimmerTrack {
+  0% { transform: translateX(-55%); }
+  100% { transform: translateX(155%); }
+}
 
 /* ── App Layout ─────────────────────────────────────────────── */
 .app-layout {
@@ -459,6 +472,143 @@ button:disabled { opacity: 0.46; cursor: not-allowed; transform: none !important
 }
 .onboarding-shell { grid-template-columns: minmax(0, 1fr); max-width: 700px; margin: 0 auto; width: 100%; padding-top: 64px; }
 .auth-shell { width: calc(100vw - 64px); max-width: 1120px; margin: 0 auto; grid-template-columns: minmax(220px, 1fr) minmax(320px, 460px) minmax(220px, 290px); align-items: center; }
+.boot-shell {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 28px;
+}
+
+.boot-card {
+  position: relative;
+  width: min(100%, 620px);
+  overflow: hidden;
+  display: grid;
+  gap: 22px;
+  padding: 36px 36px 30px;
+  border-radius: 32px;
+  background:
+    radial-gradient(circle at top left, rgba(0,113,227,0.12), transparent 34%),
+    linear-gradient(180deg, rgba(255,255,255,0.98), rgba(245,247,252,0.96));
+  border: 1px solid rgba(255,255,255,0.7);
+  box-shadow: 0 28px 80px rgba(17, 24, 39, 0.12), inset 0 1px 0 rgba(255,255,255,0.88);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  animation: fadeUp 420ms var(--ease) both;
+}
+
+.boot-card-glow {
+  position: absolute;
+  inset: auto -8% -34% auto;
+  width: 260px;
+  height: 260px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(66, 153, 225, 0.22), rgba(66, 153, 225, 0));
+  pointer-events: none;
+}
+
+.boot-signal {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  display: grid;
+  place-items: center;
+}
+
+.boot-signal-core {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #0ea5e9, #0071e3);
+  box-shadow: 0 0 0 8px rgba(0,113,227,0.12), 0 12px 30px rgba(0,113,227,0.24);
+  animation: pulseSoft 1.9s var(--ease) infinite;
+}
+
+.boot-signal-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 1px solid rgba(0,113,227,0.18);
+}
+
+.boot-signal-ring-a { animation: ripple 2.2s linear infinite; }
+.boot-signal-ring-b { animation: ripple 2.2s linear infinite 1.1s; }
+
+.boot-copy {
+  display: grid;
+  gap: 10px;
+  max-width: 520px;
+}
+
+.boot-copy .eyebrow {
+  color: var(--apple-blue);
+  letter-spacing: 0.14em;
+}
+
+.boot-card h1 {
+  margin: 0;
+  font-size: clamp(30px, 5vw, 46px);
+  line-height: 0.98;
+  letter-spacing: -0.05em;
+  font-weight: 800;
+  color: var(--apple-text);
+}
+
+.boot-description,
+.boot-status-text {
+  color: var(--apple-text-secondary);
+}
+
+.boot-description {
+  margin: 0;
+  max-width: 46ch;
+  font-size: 15px;
+  line-height: 1.7;
+}
+
+.boot-progress {
+  position: relative;
+  height: 10px;
+  overflow: hidden;
+  border-radius: var(--apple-radius-pill);
+  background: rgba(0,0,0,0.06);
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.06);
+}
+
+.boot-progress-bar {
+  position: absolute;
+  inset: 0;
+  width: 42%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, rgba(14,165,233,0.22), rgba(0,113,227,0.9), rgba(125,211,252,0.5));
+  animation: shimmerTrack 1.45s ease-in-out infinite;
+}
+
+.boot-status-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 12px;
+}
+
+.boot-status-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 0 12px;
+  border-radius: var(--apple-radius-pill);
+  background: rgba(0,113,227,0.08);
+  border: 1px solid rgba(0,113,227,0.12);
+  color: var(--apple-blue);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.boot-status-text {
+  font-size: 13px;
+}
 
 .auth-hero { display: grid; gap: 14px; max-width: 320px; color: var(--apple-text); }
 .auth-hero h2 { margin: 0; font-size: clamp(26px, 3vw, 38px); line-height: 1.06; letter-spacing: -0.04em; font-weight: 700; }
@@ -629,6 +779,11 @@ button:disabled { opacity: 0.46; cursor: not-allowed; transform: none !important
   .note-row-main { flex-direction: column; align-items: flex-start; }
   .dashboard { padding-top: 60px; padding-left: 18px; padding-right: 18px; }
   .page-shell { padding-left: 18px; padding-right: 18px; }
+  .boot-shell { padding: 18px 14px; }
+  .boot-card { padding: 26px 20px 22px; gap: 18px; border-radius: 24px; }
+  .boot-card h1 { font-size: clamp(26px, 11vw, 36px); }
+  .boot-description { font-size: 14px; }
+  .boot-progress { height: 8px; }
   .auth-shell, .onboarding-shell { padding: 18px 14px; }
   .auth-card, .delivery-card, .onboarding-card { padding: 22px 18px; }
   .presence-row { flex-direction: column; align-items: flex-start; }
