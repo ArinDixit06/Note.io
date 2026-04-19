@@ -50,9 +50,12 @@ const Sidebar = ({
   currentWorkspace,
   workspaces,
   members,
+  folders,
   stats,
   activeView,
   onViewChange,
+  activeFolderId,
+  onFolderSelect,
   searchQuery,
   onSearchChange,
   workspaceDraft,
@@ -64,6 +67,9 @@ const Sidebar = ({
   newWorkspaceDraft,
   onNewWorkspaceDraftChange,
   onCreateWorkspace,
+  newFolderDraft,
+  onNewFolderDraftChange,
+  onCreateFolder,
   onWorkspaceSelect,
   onLogout,
   isOpen,
@@ -159,6 +165,55 @@ const Sidebar = ({
             </button>
           ))}
         </nav>
+
+        <section className="profile-settings">
+          <div className="settings-heading">
+            <p>Folders</p>
+            <small>Group pages inside the workspace</small>
+          </div>
+
+          <div className="folder-filter-list">
+            <button
+              className={`menu-item ${activeFolderId === 'all' ? 'active' : ''}`}
+              onClick={() => onFolderSelect('all')}
+            >
+              <span className="menu-icon">#</span>
+              <span>All folders</span>
+            </button>
+            {folders.map((folder) => (
+              <button
+                key={folder.id}
+                className={`menu-item ${activeFolderId === folder.id ? 'active' : ''}`}
+                onClick={() => onFolderSelect(folder.id)}
+              >
+                <span className="folder-dot" style={{ background: folder.color }} />
+                <span>{folder.name}</span>
+              </button>
+            ))}
+          </div>
+
+          <label>
+            <span>Name</span>
+            <input
+              type="text"
+              value={newFolderDraft.name}
+              onChange={(event) => onNewFolderDraftChange({ name: event.target.value })}
+              placeholder="Research, Invoices, Reading..."
+            />
+          </label>
+          <label>
+            <span>Color</span>
+            <input
+              type="text"
+              value={newFolderDraft.color}
+              onChange={(event) => onNewFolderDraftChange({ color: event.target.value })}
+              placeholder="#d89a5b"
+            />
+          </label>
+          <button className="button" onClick={onCreateFolder}>
+            Create folder
+          </button>
+        </section>
 
         <section className="profile-settings">
           <div className="settings-heading">
@@ -266,6 +321,10 @@ const Sidebar = ({
             <span>Archive</span>
             <strong>{stats.archived}</strong>
           </div>
+          <div>
+            <span>PDFs</span>
+            <strong>{stats.pdfs}</strong>
+          </div>
         </section>
       </aside>
     </>
@@ -273,4 +332,3 @@ const Sidebar = ({
 };
 
 export default Sidebar;
-

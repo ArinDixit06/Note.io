@@ -6,7 +6,7 @@ require('dotenv').config();
 
 const app = express();
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '25mb' }));
 
 const { SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, APP_URL } = process.env;
 
@@ -32,6 +32,8 @@ const WORD_BANK = [
 ];
 
 const ensureArray = (value) => (Array.isArray(value) ? value : []);
+const sanitizeFileName = (value = '') => String(value || '').replace(/[\\/:*?"<>|]+/g, '_').trim();
+const normalizeBase64 = (value = '') => String(value || '').replace(/^data:application\/pdf;base64,/i, '').replace(/\s+/g, '');
 
 const getInitials = (value = '') =>
   value
@@ -141,6 +143,8 @@ const mapMember = (membership, account) => ({
 const mapNote = (row, accountMap = {}) => ({
   _id: row.id,
   workspaceId: row.workspace_id,
+  folderId: row.folder_id,
+  folderName: row.folder_name || null,
   localId: row.local_id,
   title: row.title,
   content: row.content,
@@ -157,9 +161,31 @@ const mapNote = (row, accountMap = {}) => ({
   ownerName: accountMap[row.created_by_account_id]?.full_name || 'Unknown',
   ownerRole: accountMap[row.created_by_account_id]?.title || '',
   lastEditedByName: accountMap[row.last_edited_by_account_id]?.full_name || 'Unknown',
+  attachmentCount: Number(row.attachment_count || 0),
 });
 
-const sendServerError = (res, error) => res.status(500).json({ error: error.message || 'Unexpected server error' });
+const mapFolder = (row) => ({
+  id: row.id,
+  workspaceId: row.workspace_id,
+  name: row.name,
+  color: row.color,
+  createdAt: row.created_at,
+  updatedAt: row.updated_at,
+});
+
+const mapAttachment = (row, includeData = false) => ({
+  id: row.id,
+  noteId: row.note_id,
+  workspaceId: row.workspace_id,
+  fileName: row.file_name,
+  mimeType: row.mime_type,
+  fileSizeBytes: row.file_size_bytes,
+  createdAt: row.created_at,
+  ...(includeData ? { dataBase64: row.data_base64 } : {}),
+});
+
+const sendServerError = (res, error) =>
+  res.status(error.statusCode || 500).json({ error: error.message || 'Unexpected server error' });
 
 const ensureSuccess = (result) => {
   if (result.error) {
@@ -387,6 +413,84 @@ const getAccountsByIds = async (ids) => {
     return accumulator;
   }, {});
 };
+
+const getFoldersByWorkspaceId = async (workspaceId) =>
+  ensureSuccess(
+    await supabase
+      .from('folders')
+      .select('*')
+      .eq('workspace_id', workspaceId)
+      .order('name', { ascending: true })
+  );
+
+const getFolderById = async (workspaceId, folderId) => {
+  if (!folderId) {
+    return null;
+  }
+
+  return maybeSingle(
+    await supabase
+      .from('folders')
+      .select('*')
+      .eq('id', folderId)
+      .eq('workspace_id', workspaceId)
+      .maybeSingle()
+  );
+};
+
+const requireFolderInWorkspace = async (workspaceId, folderId) => {
+  if (!folderId) {
+    return null;
+  }
+
+  const folder = await getFolderById(workspaceId, folderId);
+
+  if (!folder) {
+    const error = new Error('Folder not found in this workspace');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  return folder;
+};
+
+const getAttachmentMetaByNoteIds = async (workspaceId, noteIds) => {
+  const uniqueNoteIds = Array.from(new Set(noteIds.filter(Boolean)));
+
+  if (!uniqueNoteIds.length) {
+    return {};
+  }
+
+  const attachments = ensureSuccess(
+    await supabase
+      .from('note_attachments')
+      .select('id, note_id, workspace_id, file_name, mime_type, file_size_bytes, created_at')
+      .eq('workspace_id', workspaceId)
+      .in('note_id', uniqueNoteIds)
+      .order('created_at', { ascending: true })
+  );
+
+  return attachments.reduce((accumulator, attachment) => {
+    const key = attachment.note_id;
+    if (!accumulator[key]) {
+      accumulator[key] = [];
+    }
+
+    accumulator[key].push(mapAttachment(attachment));
+    return accumulator;
+  }, {});
+};
+
+const getAttachmentById = async (workspaceId, noteId, attachmentId) =>
+  maybeSingle(
+    await supabase
+      .from('note_attachments')
+      .select('*')
+      .eq('workspace_id', workspaceId)
+      .eq('note_id', noteId)
+      .eq('id', attachmentId)
+      .maybeSingle()
+  );
 
 const createMagicPreview = (email, loginCode, magicToken, expiresAt) => ({
   email,
@@ -803,6 +907,55 @@ app.get('/api/workspaces/:id/members', async (req, res) => {
   }
 });
 
+app.get('/api/folders', async (req, res) => {
+  try {
+    const access = await requireWorkspaceAccess(req, res);
+
+    if (!access) {
+      return;
+    }
+
+    const folders = await getFoldersByWorkspaceId(access.workspace.id);
+    res.json(folders.map(mapFolder));
+  } catch (error) {
+    sendServerError(res, error);
+  }
+});
+
+app.post('/api/folders', async (req, res) => {
+  try {
+    const access = await requireWorkspaceAccess(req, res);
+
+    if (!access) {
+      return;
+    }
+
+    const name = String(req.body?.name || '').trim();
+    const color = String(req.body?.color || '#d89a5b').trim() || '#d89a5b';
+
+    if (!name) {
+      return res.status(400).json({ error: 'Folder name is required' });
+    }
+
+    const folder = ensureSuccess(
+      await supabase
+        .from('folders')
+        .insert({
+          workspace_id: access.workspace.id,
+          name,
+          color,
+          created_by_account_id: access.session.account_id,
+        })
+        .select()
+        .single()
+    );
+
+    res.json(mapFolder(folder));
+  } catch (error) {
+    sendServerError(res, error);
+  }
+});
+
 app.get('/api/notes', async (req, res) => {
   try {
     const access = await requireWorkspaceAccess(req, res);
@@ -810,6 +963,12 @@ app.get('/api/notes', async (req, res) => {
     if (!access) {
       return;
     }
+
+    const folders = await getFoldersByWorkspaceId(access.workspace.id);
+    const folderMap = folders.reduce((accumulator, folder) => {
+      accumulator[folder.id] = folder;
+      return accumulator;
+    }, {});
 
     const notes = ensureSuccess(
       await supabase
@@ -819,13 +978,25 @@ app.get('/api/notes', async (req, res) => {
         .order('updated_at', { ascending: false })
     );
 
+    const attachmentMap = await getAttachmentMetaByNoteIds(
+      access.workspace.id,
+      notes.map((note) => note.id)
+    );
     const accountMap = await getAccountsByIds(
       notes.flatMap((note) => [note.created_by_account_id, note.last_edited_by_account_id])
     );
 
     res.json(
       notes.map((note) => ({
-        ...mapNote(note, accountMap),
+        ...mapNote(
+          {
+            ...note,
+            folder_name: note.folder_id ? folderMap[note.folder_id]?.name || null : null,
+            attachment_count: attachmentMap[note.id]?.length || 0,
+          },
+          accountMap
+        ),
+        attachments: attachmentMap[note.id] || [],
         workspace: access.workspace.name,
       }))
     );
@@ -843,10 +1014,13 @@ app.post('/api/notes', async (req, res) => {
     }
 
     const { localId, title = 'Untitled', content = '', coverImage = '', status = 'Draft', tags = [] } = req.body;
+    const folderId = req.body?.folderId || null;
 
     if (!localId) {
       return res.status(400).json({ error: 'localId is required' });
     }
+
+    const folder = await requireFolderInWorkspace(access.workspace.id, folderId);
 
     const note = ensureSuccess(
       await supabase
@@ -854,6 +1028,7 @@ app.post('/api/notes', async (req, res) => {
         .upsert(
           {
             workspace_id: access.workspace.id,
+            folder_id: folder?.id || null,
             local_id: localId,
             title,
             content,
@@ -876,7 +1051,15 @@ app.post('/api/notes', async (req, res) => {
 
     const accountMap = await getAccountsByIds([note.created_by_account_id, note.last_edited_by_account_id]);
     res.json({
-      ...mapNote(note, accountMap),
+      ...mapNote(
+        {
+          ...note,
+          folder_name: folder?.name || null,
+          attachment_count: 0,
+        },
+        accountMap
+      ),
+      attachments: [],
       workspace: access.workspace.name,
     });
   } catch (error) {
@@ -892,8 +1075,11 @@ app.put('/api/notes/:id', async (req, res) => {
       return;
     }
 
+    const folderId = req.body?.folderId === undefined ? undefined : req.body.folderId || null;
+    const folder = folderId === undefined ? null : await requireFolderInWorkspace(access.workspace.id, folderId);
     const payload = {
       ...(req.body?.localId ? { local_id: req.body.localId } : {}),
+      ...(folderId !== undefined ? { folder_id: folder?.id || null } : {}),
       ...(req.body?.title !== undefined ? { title: req.body.title } : {}),
       ...(req.body?.content !== undefined ? { content: req.body.content } : {}),
       ...(req.body?.coverImage !== undefined ? { cover_image: req.body.coverImage } : {}),
@@ -916,10 +1102,169 @@ app.put('/api/notes/:id', async (req, res) => {
     );
 
     const accountMap = await getAccountsByIds([note.created_by_account_id, note.last_edited_by_account_id]);
+    const attachmentMap = await getAttachmentMetaByNoteIds(access.workspace.id, [note.id]);
     res.json({
-      ...mapNote(note, accountMap),
+      ...mapNote(
+        {
+          ...note,
+          folder_name:
+            folderId !== undefined
+              ? folder?.name || null
+              : (await getFolderById(access.workspace.id, note.folder_id))?.name || null,
+          attachment_count: attachmentMap[note.id]?.length || 0,
+        },
+        accountMap
+      ),
+      attachments: attachmentMap[note.id] || [],
       workspace: access.workspace.name,
     });
+  } catch (error) {
+    sendServerError(res, error);
+  }
+});
+
+app.get('/api/notes/:id/attachments', async (req, res) => {
+  try {
+    const access = await requireWorkspaceAccess(req, res);
+
+    if (!access) {
+      return;
+    }
+
+    const note = maybeSingle(
+      await supabase
+        .from('notes')
+        .select('id')
+        .eq('id', req.params.id)
+        .eq('workspace_id', access.workspace.id)
+        .maybeSingle()
+    );
+
+    if (!note) {
+      return res.status(404).json({ error: 'Note not found' });
+    }
+
+    const attachments = ensureSuccess(
+      await supabase
+        .from('note_attachments')
+        .select('*')
+        .eq('workspace_id', access.workspace.id)
+        .eq('note_id', req.params.id)
+        .order('created_at', { ascending: true })
+    );
+
+    res.json(attachments.map((attachment) => mapAttachment(attachment, true)));
+  } catch (error) {
+    sendServerError(res, error);
+  }
+});
+
+app.post('/api/notes/:id/attachments', async (req, res) => {
+  try {
+    const access = await requireWorkspaceAccess(req, res);
+
+    if (!access) {
+      return;
+    }
+
+    const note = maybeSingle(
+      await supabase
+        .from('notes')
+        .select('id')
+        .eq('id', req.params.id)
+        .eq('workspace_id', access.workspace.id)
+        .maybeSingle()
+    );
+
+    if (!note) {
+      return res.status(404).json({ error: 'Note not found' });
+    }
+
+    const fileName = sanitizeFileName(req.body?.fileName);
+    const mimeType = String(req.body?.mimeType || '').trim().toLowerCase();
+    const dataBase64 = normalizeBase64(req.body?.dataBase64);
+    const fileSizeBytes = Number(req.body?.fileSizeBytes || 0);
+
+    if (!fileName || !dataBase64 || !fileSizeBytes) {
+      return res.status(400).json({ error: 'fileName, fileSizeBytes, and dataBase64 are required' });
+    }
+
+    if (mimeType !== 'application/pdf') {
+      return res.status(400).json({ error: 'Only PDF attachments are supported' });
+    }
+
+    if (fileSizeBytes > 10 * 1024 * 1024) {
+      return res.status(400).json({ error: 'PDF attachments must be 10 MB or smaller' });
+    }
+
+    const attachment = ensureSuccess(
+      await supabase
+        .from('note_attachments')
+        .insert({
+          workspace_id: access.workspace.id,
+          note_id: req.params.id,
+          file_name: fileName,
+          mime_type: mimeType,
+          file_size_bytes: fileSizeBytes,
+          data_base64: dataBase64,
+          created_by_account_id: access.session.account_id,
+        })
+        .select()
+        .single()
+    );
+
+    res.json(mapAttachment(attachment, true));
+  } catch (error) {
+    sendServerError(res, error);
+  }
+});
+
+app.get('/api/notes/:noteId/attachments/:attachmentId/download', async (req, res) => {
+  try {
+    const access = await requireWorkspaceAccess(req, res);
+
+    if (!access) {
+      return;
+    }
+
+    const attachment = await getAttachmentById(access.workspace.id, req.params.noteId, req.params.attachmentId);
+
+    if (!attachment) {
+      return res.status(404).json({ error: 'Attachment not found' });
+    }
+
+    res.setHeader('Content-Type', attachment.mime_type || 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${sanitizeFileName(attachment.file_name) || 'attachment.pdf'}"`);
+    res.send(Buffer.from(attachment.data_base64, 'base64'));
+  } catch (error) {
+    sendServerError(res, error);
+  }
+});
+
+app.delete('/api/notes/:noteId/attachments/:attachmentId', async (req, res) => {
+  try {
+    const access = await requireWorkspaceAccess(req, res);
+
+    if (!access) {
+      return;
+    }
+
+    const attachment = await getAttachmentById(access.workspace.id, req.params.noteId, req.params.attachmentId);
+
+    if (!attachment) {
+      return res.status(404).json({ error: 'Attachment not found' });
+    }
+
+    await ensureSuccess(
+      await supabase
+        .from('note_attachments')
+        .delete()
+        .eq('id', req.params.attachmentId)
+        .eq('note_id', req.params.noteId)
+        .eq('workspace_id', access.workspace.id)
+    );
+
+    res.json({ message: 'Attachment deleted' });
   } catch (error) {
     sendServerError(res, error);
   }

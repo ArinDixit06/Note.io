@@ -7,15 +7,21 @@ import NoteEditor from './components/NoteEditor';
 import NewNoteButton from './components/NewNoteButton';
 import {
   completeOnboarding,
+  createFolder,
   createNote,
   createWorkspace,
+  deleteNoteAttachment,
   deleteNote,
+  fetchFolders,
   fetchInboxPreview,
+  fetchNoteAttachments,
   fetchNotes,
   fetchSession,
   fetchWorkspaceMembers,
+  getAttachmentDownloadUrl,
   logoutSession,
   requestLogin,
+  uploadNoteAttachment,
   updateAccount,
   updateNote,
   updateWorkspace,
@@ -151,6 +157,10 @@ const DEFAULT_NEW_WORKSPACE = {
   icon: '[]',
   accent: '#d89a5b',
   useCase: 'team',
+};
+const DEFAULT_NEW_FOLDER = {
+  name: '',
+  color: '#d89a5b',
 };
 const EMPTY_ARRAY = [];
 
@@ -422,12 +432,14 @@ function App() {
   const [sessionData, setSessionData] = useState(null);
   const [activeWorkspaceId, setActiveWorkspaceId] = useState(() => loadActiveWorkspaceId());
   const [members, setMembers] = useState([]);
+  const [folders, setFolders] = useState([]);
   const [notes, setNotes] = useState([]);
   const [selectedNoteId, setSelectedNoteId] = useState(null);
   const [isBooting, setIsBooting] = useState(true);
   const [isWorkspaceLoading, setIsWorkspaceLoading] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [activeView, setActiveView] = useState('all');
+  const [activeFolderId, setActiveFolderId] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [loginEmail, setLoginEmail] = useState('');
   const [loginCode, setLoginCode] = useState('');
@@ -443,6 +455,7 @@ function App() {
   const [creatorDraft, setCreatorDraft] = useState({ fullName: '', title: '' });
   const [workspaceDraft, setWorkspaceDraft] = useState({ name: '', icon: '[]', accent: '#d89a5b', useCase: 'team' });
   const [newWorkspaceDraft, setNewWorkspaceDraft] = useState(DEFAULT_NEW_WORKSPACE);
+  const [newFolderDraft, setNewFolderDraft] = useState(DEFAULT_NEW_FOLDER);
   const [onboardingDraft, setOnboardingDraft] = useState({
     fullName: '',
     title: '',
@@ -467,6 +480,10 @@ function App() {
     () => notes.find((note) => note._id === selectedNoteId) || null,
     [notes, selectedNoteId]
   );
+  const currentFolder = useMemo(
+    () => folders.find((folder) => folder.id === activeFolderId) || null,
+    [activeFolderId, folders]
+  );
 
   const filteredNotes = useMemo(() => {
     const query = deferredSearchQuery.trim().toLowerCase();
@@ -476,6 +493,7 @@ function App() {
       if (activeView === 'archived' && !note.archived) return false;
       if (activeView === 'all' && note.archived) return false;
       if (activeView === 'owned' && note.createdByAccountId !== sessionData?.account?.id) return false;
+      if (activeFolderId !== 'all' && note.folderId !== activeFolderId) return false;
 
       if (!query) return true;
 
@@ -486,18 +504,37 @@ function App() {
 
       return haystack.includes(query);
     });
-  }, [activeView, deferredSearchQuery, notes, sessionData?.account?.id]);
+  }, [activeFolderId, activeView, deferredSearchQuery, notes, sessionData?.account?.id]);
 
   const workspaceStats = useMemo(() => {
     const favorites = notes.filter((note) => note.favorite && !note.archived).length;
     const archived = notes.filter((note) => note.archived).length;
     const owned = notes.filter((note) => note.createdByAccountId === sessionData?.account?.id).length;
     const active = notes.filter((note) => !note.archived).length;
+    const pdfs = notes.reduce((total, note) => total + (note.attachmentCount || note.attachments?.length || 0), 0);
 
-    return { favorites, archived, owned, active };
-  }, [notes, sessionData?.account?.id]);
+    return { favorites, archived, owned, active, folders: folders.length, pdfs };
+  }, [folders.length, notes, sessionData?.account?.id]);
 
   const recentNotes = useMemo(() => sortNotes(notes.filter((note) => !note.archived)).slice(0, 4), [notes]);
+
+  const mergeNotePatch = useCallback((noteId, updater) => {
+    setNotes((currentNotes) =>
+      sortNotes(
+        currentNotes.map((note) => {
+          if (note._id !== noteId) {
+            return note;
+          }
+
+          const patch = typeof updater === 'function' ? updater(note) : updater;
+          return {
+            ...note,
+            ...patch,
+          };
+        })
+      )
+    );
+  }, []);
 
   const applySessionPayload = (payload) => {
     setSessionData(payload);
@@ -611,14 +648,17 @@ function App() {
       setIsWorkspaceLoading(true);
 
       try {
-        const [membersPayload, notesPayload] = await Promise.all([
+        const [membersPayload, notesPayload, foldersPayload] = await Promise.all([
           fetchWorkspaceMembers(sessionToken, currentWorkspace.id),
           fetchNotes(sessionToken, currentWorkspace.id),
+          fetchFolders(sessionToken, currentWorkspace.id),
         ]);
 
         if (!active) return;
         setMembers(membersPayload);
         setNotes(sortNotes(notesPayload));
+        setFolders(foldersPayload);
+        setActiveFolderId('all');
       } catch (error) {
         if (!active) return;
         setStatusMessage(error.message);
@@ -765,6 +805,22 @@ function App() {
     }
   };
 
+  const handleCreateFolder = async () => {
+    if (!sessionToken || !currentWorkspace || !newFolderDraft.name.trim()) {
+      return;
+    }
+
+    try {
+      const folder = await createFolder(sessionToken, currentWorkspace.id, newFolderDraft);
+      setFolders((currentFolders) => [...currentFolders, folder].sort((a, b) => a.name.localeCompare(b.name)));
+      setActiveFolderId(folder.id);
+      setNewFolderDraft(DEFAULT_NEW_FOLDER);
+      setStatusMessage('Folder created.');
+    } catch (error) {
+      setStatusMessage(error.message);
+    }
+  };
+
   const handleLogout = async () => {
     try {
       if (sessionToken) {
@@ -779,8 +835,10 @@ function App() {
     setSessionToken(null);
     setSessionData(null);
     setMembers([]);
+    setFolders([]);
     setNotes([]);
     setSelectedNoteId(null);
+    setActiveFolderId('all');
     setPendingDelivery(null);
   };
 
@@ -795,6 +853,7 @@ function App() {
         title: 'Untitled',
         content: '<p></p>',
         coverImage: '',
+        folderId: activeFolderId === 'all' ? null : activeFolderId,
         status: 'Draft',
         tags: [],
         favorite: false,
@@ -828,6 +887,87 @@ function App() {
       setStatusMessage(error.message);
     }
   };
+
+  const handleLoadAttachments = useCallback(async (noteId) => {
+    if (!sessionToken || !currentWorkspace || !noteId) {
+      return;
+    }
+
+    try {
+      const attachments = await fetchNoteAttachments(sessionToken, currentWorkspace.id, noteId);
+      mergeNotePatch(noteId, {
+        attachments,
+        attachmentCount: attachments.length,
+      });
+    } catch (error) {
+      setStatusMessage(error.message);
+    }
+  }, [currentWorkspace, mergeNotePatch, sessionToken]);
+
+  const handleUploadAttachment = async (noteId, file) => {
+    if (!sessionToken || !currentWorkspace || !noteId || !file) {
+      return;
+    }
+
+    if (file.type !== 'application/pdf') {
+      throw new Error('Only PDF files are supported.');
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      throw new Error('PDF attachments must be 10 MB or smaller.');
+    }
+
+    const dataBase64 = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || '').split(',')[1] || '');
+      reader.onerror = () => reject(new Error('Failed to read PDF file.'));
+      reader.readAsDataURL(file);
+    });
+
+    const attachment = await uploadNoteAttachment(sessionToken, currentWorkspace.id, noteId, {
+      fileName: file.name,
+      mimeType: file.type,
+      fileSizeBytes: file.size,
+      dataBase64,
+    });
+
+    mergeNotePatch(noteId, (note) => {
+      const attachments = [...(note.attachments || []), attachment];
+      return {
+        attachments,
+        attachmentCount: attachments.length,
+      };
+    });
+  };
+
+  const handleDeleteAttachment = async (noteId, attachmentId) => {
+    if (!sessionToken || !currentWorkspace) {
+      return;
+    }
+
+    await deleteNoteAttachment(sessionToken, currentWorkspace.id, noteId, attachmentId);
+    mergeNotePatch(noteId, (note) => {
+      const attachments = (note.attachments || []).filter((attachment) => attachment.id !== attachmentId);
+      return {
+        attachments,
+        attachmentCount: attachments.length,
+      };
+    });
+  };
+
+  useEffect(() => {
+    if (!selectedNote || !selectedNote.attachmentCount) {
+      return;
+    }
+
+    const hasAttachmentData = (selectedNote.attachments || []).every((attachment) => attachment.dataBase64);
+
+    if (hasAttachmentData) {
+      return;
+    }
+
+    handleLoadAttachments(selectedNote._id);
+  }, [handleLoadAttachments, selectedNote]);
 
   const handleDeleteNote = async (noteId) => {
     if (!sessionToken || !currentWorkspace) {
@@ -919,9 +1059,12 @@ function App() {
         currentWorkspace={currentWorkspace}
         workspaces={workspaces}
         members={members}
+        folders={folders}
         stats={workspaceStats}
         activeView={activeView}
         onViewChange={setActiveView}
+        activeFolderId={activeFolderId}
+        onFolderSelect={setActiveFolderId}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
         workspaceDraft={workspaceDraft}
@@ -933,10 +1076,14 @@ function App() {
         newWorkspaceDraft={newWorkspaceDraft}
         onNewWorkspaceDraftChange={(patch) => setNewWorkspaceDraft((current) => ({ ...current, ...patch }))}
         onCreateWorkspace={handleCreateWorkspace}
+        newFolderDraft={newFolderDraft}
+        onNewFolderDraftChange={(patch) => setNewFolderDraft((current) => ({ ...current, ...patch }))}
+        onCreateFolder={handleCreateFolder}
         onWorkspaceSelect={(workspaceId) => {
           setActiveWorkspaceId(workspaceId);
           saveActiveWorkspaceId(workspaceId);
           setSelectedNoteId(null);
+          setActiveFolderId('all');
         }}
         onLogout={handleLogout}
         isOpen={isSidebarOpen}
@@ -951,8 +1098,14 @@ function App() {
             account={sessionData.account}
             workspace={currentWorkspace}
             members={members}
+            folders={folders}
             onUpdate={handleUpdateNote}
             onDelete={handleDeleteNote}
+            onUploadAttachment={handleUploadAttachment}
+            onDeleteAttachment={handleDeleteAttachment}
+            getAttachmentDownloadUrl={(noteId, attachmentId) =>
+              getAttachmentDownloadUrl(sessionToken, currentWorkspace.id, noteId, attachmentId)
+            }
             onBack={() => setSelectedNoteId(null)}
             allNotes={notes}
             onNavigate={(noteOrId) => {
@@ -995,9 +1148,9 @@ function App() {
                 <p>Ambient collaborators connected to this workspace.</p>
               </article>
               <article className="stat-card">
-                <span>Archive</span>
-                <strong>{workspaceStats.archived}</strong>
-                <p>Pages hidden from the active working set.</p>
+                <span>Folders / PDFs</span>
+                <strong>{workspaceStats.folders} / {workspaceStats.pdfs}</strong>
+                <p>Workspace folders and attached PDFs currently indexed.</p>
               </article>
             </section>
 
@@ -1008,7 +1161,9 @@ function App() {
                   <h2>{VIEW_LABELS[activeView] || 'Workspace'}</h2>
                 </div>
                 <p className="section-copy">
-                  {statusMessage || 'Workspace-scoped filters and search now operate inside the current context only.'}
+                  {statusMessage || (currentFolder
+                    ? `Showing pages currently inside ${currentFolder.name}.`
+                    : 'Workspace-scoped filters and search now operate inside the current context only.')}
                 </p>
               </div>
 
@@ -1017,6 +1172,7 @@ function App() {
               ) : (
                 <NoteList
                   notes={filteredNotes}
+                  currentFolder={currentFolder}
                   onNoteClick={(note) => setSelectedNoteId(note._id)}
                   emptyMessage={`No pages found in ${VIEW_LABELS[activeView] || 'this view'}.`}
                 />

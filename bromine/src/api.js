@@ -141,6 +141,30 @@ export const fetchNotes = async (sessionToken, workspaceId) => {
   return parseResponse(response, 'Failed to fetch notes');
 };
 
+export const fetchFolders = async (sessionToken, workspaceId) => {
+  const response = await fetch(`${API_BASE}/folders`, {
+    headers: withWorkspace(sessionToken, workspaceId),
+  });
+
+  return parseResponse(response, 'Failed to fetch folders');
+};
+
+export const createFolder = async (sessionToken, workspaceId, payload) => {
+  const response = await fetch(`${API_BASE}/folders`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...withWorkspace(sessionToken, workspaceId),
+    },
+    body: JSON.stringify({
+      workspaceId,
+      ...payload,
+    }),
+  });
+
+  return parseResponse(response, 'Failed to create folder');
+};
+
 export const createNote = async (sessionToken, workspaceId, note) => {
   const response = await fetch(`${API_BASE}/notes`, {
     method: 'POST',
@@ -170,6 +194,7 @@ export const updateNote = async (sessionToken, workspaceId, noteId, note) => {
       title: note.title,
       content: note.content,
       coverImage: note.coverImage,
+      folderId: note.folderId,
       status: note.status,
       tags: note.tags,
       favorite: note.favorite,
@@ -189,3 +214,36 @@ export const deleteNote = async (sessionToken, workspaceId, noteId) => {
 
   return parseResponse(response, 'Failed to delete note');
 };
+
+export const fetchNoteAttachments = async (sessionToken, workspaceId, noteId) => {
+  const response = await fetch(`${API_BASE}/notes/${noteId}/attachments`, {
+    headers: withWorkspace(sessionToken, workspaceId),
+  });
+
+  return parseResponse(response, 'Failed to fetch note attachments');
+};
+
+export const uploadNoteAttachment = async (sessionToken, workspaceId, noteId, payload) => {
+  const response = await fetch(`${API_BASE}/notes/${noteId}/attachments`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...withWorkspace(sessionToken, workspaceId),
+    },
+    body: JSON.stringify(payload),
+  });
+
+  return parseResponse(response, 'Failed to upload PDF');
+};
+
+export const deleteNoteAttachment = async (sessionToken, workspaceId, noteId, attachmentId) => {
+  const response = await fetch(`${API_BASE}/notes/${noteId}/attachments/${attachmentId}`, {
+    method: 'DELETE',
+    headers: withWorkspace(sessionToken, workspaceId),
+  });
+
+  return parseResponse(response, 'Failed to delete PDF');
+};
+
+export const getAttachmentDownloadUrl = (sessionToken, workspaceId, noteId, attachmentId) =>
+  `${API_BASE}/notes/${noteId}/attachments/${attachmentId}/download?workspaceId=${encodeURIComponent(workspaceId)}&sessionToken=${encodeURIComponent(sessionToken)}`;

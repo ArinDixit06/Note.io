@@ -17,7 +17,7 @@ const getStatusTone = (status = '') => {
   return 'brown';
 };
 
-const NoteList = ({ notes, onNoteClick, emptyMessage = 'No notes yet. Create one to get started!' }) => {
+const NoteList = ({ notes, currentFolder, onNoteClick, emptyMessage = 'No notes yet. Create one to get started!' }) => {
   if (!notes.length) {
     return <p className="empty-state">{emptyMessage}</p>;
   }
@@ -44,6 +44,11 @@ const NoteList = ({ notes, onNoteClick, emptyMessage = 'No notes yet. Create one
             <div className="note-row-preview">{previewText.slice(0, 140)}</div>
 
             <div className="note-row-properties">
+              {note.folderName ? (
+                <span className="property-chip property-chip-brown">{note.folderName}</span>
+              ) : currentFolder ? (
+                <span className="property-chip property-chip-gray">No folder</span>
+              ) : null}
               <span className={`property-chip property-chip-${getStatusTone(note.status)}`}>
                 {note.status}
               </span>
@@ -53,6 +58,9 @@ const NoteList = ({ notes, onNoteClick, emptyMessage = 'No notes yet. Create one
                 </span>
               ))}
               {note.archived ? <span className="property-chip property-chip-gray">Archived</span> : null}
+              {note.attachmentCount ? (
+                <span className="property-chip property-chip-red">{note.attachmentCount} PDF</span>
+              ) : null}
             </div>
           </button>
         );

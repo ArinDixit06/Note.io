@@ -40,13 +40,23 @@ const statusTone = (status) => {
   return 'brown';
 };
 
+const formatFileSize = (bytes = 0) => {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+};
+
 const NoteEditor = ({
   note,
   account,
   workspace,
   members,
+  folders,
   onUpdate,
   onDelete,
+  onUploadAttachment,
+  onDeleteAttachment,
+  getAttachmentDownloadUrl,
   onBack,
   allNotes,
   onNavigate,
@@ -60,13 +70,17 @@ const NoteEditor = ({
   const [tagsInput, setTagsInput] = useState((note.tags || []).join(', '));
   const [favorite, setFavorite] = useState(Boolean(note.favorite));
   const [archived, setArchived] = useState(Boolean(note.archived));
+  const [folderId, setFolderId] = useState(note.folderId || '');
+  const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
   const titleRef = useRef(null);
+  const attachmentInputRef = useRef(null);
 
   const commit = (patch = {}, editorInstance = editor) => {
     onUpdate({
       ...note,
       title,
       coverImage: cover,
+      folderId: folderId || null,
       content: editorInstance?.getHTML() || note.content || '',
       status,
       tags: tagsInput
@@ -92,6 +106,10 @@ const NoteEditor = ({
   useEffect(() => {
     adjustTitleHeight();
   }, [title]);
+
+  useEffect(() => {
+    setFolderId(note.folderId || '');
+  }, [note.folderId]);
 
   const handleCoverSelect = (selectedCover) => {
     setCover(selectedCover);
@@ -121,6 +139,25 @@ const NoteEditor = ({
       .run();
 
     setShowNotePicker(false);
+  };
+
+  const handlePdfSelection = async (event) => {
+    const file = event.target.files?.[0];
+
+    if (!file || !onUploadAttachment) {
+      return;
+    }
+
+    setIsUploadingAttachment(true);
+
+    try {
+      await onUploadAttachment(note._id, file);
+    } catch (error) {
+      window.alert(error.message || 'Failed to upload PDF.');
+    } finally {
+      event.target.value = '';
+      setIsUploadingAttachment(false);
+    }
   };
 
   const getSlashItems = ({ query }) =>
@@ -334,6 +371,13 @@ const NoteEditor = ({
                 {archived ? 'Restore' : 'Archive'}
               </button>
               <button
+                onClick={() => attachmentInputRef.current?.click()}
+                className="button"
+                disabled={isUploadingAttachment}
+              >
+                {isUploadingAttachment ? 'Uploading PDF...' : 'Attach PDF'}
+              </button>
+              <button
                 onClick={() => {
                   if (window.confirm('Delete page?')) onDelete(note._id);
                 }}
@@ -399,6 +443,24 @@ const NoteEditor = ({
               <span className="property-value-text">{workspace?.name}</span>
             </label>
             <label className="property-row">
+              <span className="property-name">Folder</span>
+              <select
+                value={folderId}
+                onChange={(event) => {
+                  const nextValue = event.target.value;
+                  setFolderId(nextValue);
+                  commit({ folderId: nextValue || null });
+                }}
+              >
+                <option value="">No folder</option>
+                {folders.map((folder) => (
+                  <option key={folder.id} value={folder.id}>
+                    {folder.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="property-row">
               <span className="property-name">Status</span>
               <select
                 value={status}
@@ -441,12 +503,87 @@ const NoteEditor = ({
           </div>
 
           <div className="title-support">
+            {note.folderName ? <span className="property-chip property-chip-brown">{note.folderName}</span> : null}
             <span className={`property-chip property-chip-${statusTone(status)}`}>{status}</span>
             <span className="meta-inline">{workspace?.name}</span>
             <span className="meta-inline">{note.ownerName || account.fullName}</span>
           </div>
 
+          <input
+            ref={attachmentInputRef}
+            type="file"
+            accept="application/pdf,.pdf"
+            hidden
+            onChange={handlePdfSelection}
+          />
+
           <EditorContent editor={editor} className="tiptap-editor" />
+
+          <section className="attachment-panel">
+            <div className="attachment-panel-header">
+              <div>
+                <p className="eyebrow">PDF Attachments</p>
+                <h3>Reference files inside this note</h3>
+              </div>
+              <button className="button" onClick={() => attachmentInputRef.current?.click()} disabled={isUploadingAttachment}>
+                {isUploadingAttachment ? 'Uploading...' : 'Add PDF'}
+              </button>
+            </div>
+
+            {note.attachments?.length ? (
+              <div className="attachment-list">
+                {note.attachments.map((attachment) => {
+                  const previewUrl = attachment.dataBase64
+                    ? `data:${attachment.mimeType};base64,${attachment.dataBase64}`
+                    : null;
+
+                  return (
+                    <article key={attachment.id} className="attachment-card">
+                      <div className="attachment-card-header">
+                        <div>
+                          <strong>{attachment.fileName}</strong>
+                          <span>{formatFileSize(attachment.fileSizeBytes)} • PDF</span>
+                        </div>
+                        <div className="attachment-actions">
+                          <a
+                            className="button"
+                            href={getAttachmentDownloadUrl(note._id, attachment.id)}
+                            download={attachment.fileName}
+                          >
+                            Download
+                          </a>
+                          <button
+                            className="button button-danger"
+                            onClick={async () => {
+                              try {
+                                await onDeleteAttachment(note._id, attachment.id);
+                              } catch (error) {
+                                window.alert(error.message || 'Failed to remove PDF.');
+                              }
+                            }}
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      </div>
+
+                      {previewUrl ? (
+                        <iframe
+                          title={attachment.fileName}
+                          src={previewUrl}
+                          className="attachment-preview"
+                        />
+                      ) : (
+                        <p className="empty-state">Loading PDF preview...</p>
+                      )}
+                    </article>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="empty-state">Attach a PDF to keep manuals, invoices, or reading material inside this note.</p>
+            )}
+          </section>
 
           <div className="comment-zone">Presence is ambient here. Invite collaborators by adding them to the workspace.</div>
         </div>
