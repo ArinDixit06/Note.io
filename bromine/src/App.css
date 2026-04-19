@@ -1038,6 +1038,12 @@ button:disabled { opacity: 0.46; cursor: not-allowed; transform: none !important
   gap: 8px;
 }
 
+.pdf-tool-active {
+  border-color: rgba(220, 38, 38, 0.28) !important;
+  color: #b42318 !important;
+  background: rgba(254, 226, 226, 0.85) !important;
+}
+
 .pdf-color-swatch {
   width: 28px;
   height: 28px;
@@ -1120,11 +1126,18 @@ button:disabled { opacity: 0.46; cursor: not-allowed; transform: none !important
   position: absolute;
   border: 0;
   padding: 0;
-  opacity: 0.55;
+  opacity: 0.22;
   pointer-events: auto;
+  cursor: default;
+  border-radius: 999px;
+  filter: saturate(1.02);
+}
+
+.pdf-highlight-rect.eraser-active {
   cursor: pointer;
 }
 
-.pdf-highlight-rect:hover {
-  opacity: 0.8;
+.pdf-highlight-rect:hover,
+.pdf-highlight-rect.eraser-active:hover {
+  opacity: 0.32;
 }

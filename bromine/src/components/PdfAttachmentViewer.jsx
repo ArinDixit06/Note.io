@@ -13,6 +13,7 @@ const HIGHLIGHT_COLORS = [
 ];
 
 const DEFAULT_SCALE = 1.35;
+const SAVED_HIGHLIGHT_OPACITY = 0.16;
 
 const base64ToUint8Array = (value) => {
   const binary = window.atob(value);
@@ -56,7 +57,7 @@ const buildHighlightedPdf = async (sourceDataBase64, highlights) => {
         width: rect.width * pageWidth,
         height: rect.height * pageHeight,
         color: rgb(...color.rgb),
-        opacity: 0.45,
+        opacity: SAVED_HIGHLIGHT_OPACITY,
         borderOpacity: 0,
       });
     });
@@ -74,6 +75,7 @@ const PdfAttachmentViewer = ({ attachment, onSaveHighlights, getAttachmentDownlo
   const [activeSelection, setActiveSelection] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
   const [currentPageIndex, setCurrentPageIndex] = useState(0);
+  const [isEraserActive, setIsEraserActive] = useState(false);
 
   const highlights = useMemo(() => attachment.highlights || [], [attachment.highlights]);
 
@@ -154,6 +156,7 @@ const PdfAttachmentViewer = ({ attachment, onSaveHighlights, getAttachmentDownlo
   useEffect(() => {
     setCurrentPageIndex(0);
     setActiveSelection(null);
+    setIsEraserActive(false);
   }, [attachment?.id, pages.length]);
 
   useEffect(() => {
@@ -257,18 +260,11 @@ const PdfAttachmentViewer = ({ attachment, onSaveHighlights, getAttachmentDownlo
     };
 
     await saveHighlights([...highlights, nextHighlight]);
+    setIsEraserActive(false);
   };
 
   const handleRemoveHighlight = async (highlightId) => {
     await saveHighlights(highlights.filter((highlight) => highlight.id !== highlightId));
-  };
-
-  const handleUndoHighlight = async () => {
-    if (!highlights.length) {
-      return;
-    }
-
-    await saveHighlights(highlights.slice(0, -1));
   };
 
   return (
@@ -297,6 +293,7 @@ const PdfAttachmentViewer = ({ attachment, onSaveHighlights, getAttachmentDownlo
               style={{ '--swatch-color': color.hex }}
               onClick={() => {
                 setActiveColorId(color.id);
+                setIsEraserActive(false);
                 if (activeSelection) {
                   handleAddHighlight(color.id);
                 }
@@ -310,11 +307,11 @@ const PdfAttachmentViewer = ({ attachment, onSaveHighlights, getAttachmentDownlo
         <div className="pdf-action-group">
           <button
             type="button"
-            className="button"
-            onClick={handleUndoHighlight}
+            className={`button ${isEraserActive ? 'pdf-tool-active' : ''}`}
+            onClick={() => setIsEraserActive((currentValue) => !currentValue)}
             disabled={!highlights.length || isSaving}
           >
-            Undo highlight
+            {isEraserActive ? 'Eraser on' : 'Eraser'}
           </button>
           <a className="button" href={getAttachmentDownloadUrl(attachment.id)} download={attachment.fileName}>
             Download
@@ -392,7 +389,7 @@ const PdfAttachmentViewer = ({ attachment, onSaveHighlights, getAttachmentDownlo
                       <button
                         key={`${highlight.id}-${index}`}
                         type="button"
-                        className="pdf-highlight-rect"
+                        className={`pdf-highlight-rect ${isEraserActive ? 'eraser-active' : ''}`}
                         style={{
                           left: `${rect.x * 100}%`,
                           top: `${rect.y * 100}%`,
@@ -400,8 +397,12 @@ const PdfAttachmentViewer = ({ attachment, onSaveHighlights, getAttachmentDownlo
                           height: `${rect.height * 100}%`,
                           background: color.hex,
                         }}
-                        onClick={() => handleRemoveHighlight(highlight.id)}
-                        title="Remove highlight"
+                        onClick={() => {
+                          if (isEraserActive) {
+                            handleRemoveHighlight(highlight.id);
+                          }
+                        }}
+                        title={isEraserActive ? 'Erase highlight' : 'Highlight'}
                       />
                     ))}
                   </div>
