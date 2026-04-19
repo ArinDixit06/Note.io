@@ -46,6 +46,14 @@ const formatFileSize = (bytes = 0) => {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 };
 
+const getPdfPreviewUrl = (attachment) => {
+  if (!attachment?.dataBase64 || !attachment?.mimeType) {
+    return null;
+  }
+
+  return `data:${attachment.mimeType};base64,${attachment.dataBase64}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`;
+};
+
 const NoteEditor = ({
   note,
   account,
@@ -533,9 +541,7 @@ const NoteEditor = ({
             {note.attachments?.length ? (
               <div className="attachment-list">
                 {note.attachments.map((attachment) => {
-                  const previewUrl = attachment.dataBase64
-                    ? `data:${attachment.mimeType};base64,${attachment.dataBase64}`
-                    : null;
+                  const previewUrl = getPdfPreviewUrl(attachment);
 
                   return (
                     <article key={attachment.id} className="attachment-card">
@@ -568,11 +574,28 @@ const NoteEditor = ({
                       </div>
 
                       {previewUrl ? (
-                        <iframe
-                          title={attachment.fileName}
-                          src={previewUrl}
-                          className="attachment-preview"
-                        />
+                        <div className="attachment-preview-shell">
+                          <div className="attachment-preview-toolbar">
+                            <div className="attachment-preview-dots" aria-hidden="true">
+                              <span />
+                              <span />
+                              <span />
+                            </div>
+                            <div className="attachment-preview-meta">
+                              <span className="attachment-preview-pill">Inline preview</span>
+                              <span className="attachment-preview-caption">Optimized for reading</span>
+                            </div>
+                          </div>
+
+                          <div className="attachment-preview-stage">
+                            <iframe
+                              title={attachment.fileName}
+                              src={previewUrl}
+                              className="attachment-preview"
+                              loading="lazy"
+                            />
+                          </div>
+                        </div>
                       ) : (
                         <p className="empty-state">Loading PDF preview...</p>
                       )}
