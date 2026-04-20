@@ -114,30 +114,6 @@ const NoteEditor = ({
     adjustTitleHeight();
   }, [title]);
 
-  useEffect(() => {
-    setFolderId(note.folderId || '');
-  }, [note.folderId]);
-
-  useEffect(() => {
-    if (!note.liveSyncAt) {
-      return;
-    }
-
-    setTitle(note.title || '');
-    setCover(note.coverImage || '');
-    setStatus(note.status || 'Draft');
-    setTagsInput((note.tags || []).join(', '));
-    setFavorite(Boolean(note.favorite));
-    setArchived(Boolean(note.archived));
-    setFolderId(note.folderId || '');
-
-    if (editor && editor.getHTML() !== (note.content || '')) {
-      suppressCommitRef.current = true;
-      editor.commands.setContent(note.content || '<p></p>', false);
-      suppressCommitRef.current = false;
-    }
-  }, [editor, note.liveSyncAt]);
-
   const handleCoverSelect = (selectedCover) => {
     setCover(selectedCover);
     setShowCoverPicker(false);
@@ -361,6 +337,30 @@ const NoteEditor = ({
       commit({}, instance);
     },
   });
+
+  useEffect(() => {
+    setFolderId(note.folderId || '');
+  }, [note.folderId]);
+
+  useEffect(() => {
+    if (!note.liveSyncAt) {
+      return;
+    }
+
+    setTitle(note.title || '');
+    setCover(note.coverImage || '');
+    setStatus(note.status || 'Draft');
+    setTagsInput((note.tags || []).join(', '));
+    setFavorite(Boolean(note.favorite));
+    setArchived(Boolean(note.archived));
+    setFolderId(note.folderId || '');
+
+    if (editor && editor.getHTML() !== (note.content || '')) {
+      suppressCommitRef.current = true;
+      editor.commands.setContent(note.content || '<p></p>', false);
+      suppressCommitRef.current = false;
+    }
+  }, [editor, note.liveSyncAt]);
 
   if (!editor) return null;
 
