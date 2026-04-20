@@ -1,12 +1,15 @@
 const express = require('express');
 const cors = require('cors');
+const http = require('http');
 const { randomBytes } = require('crypto');
 const { createClient } = require('@supabase/supabase-js');
+const { WebSocketServer, WebSocket } = require('ws');
 require('dotenv').config();
 
 const app = express();
 app.use(cors());
 app.use(express.json({ limit: '25mb' }));
+const server = http.createServer(app);
 
 const { SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, APP_URL } = process.env;
 const PUBLIC_APP_URL = APP_URL || 'https://note-io-eight.vercel.app';
@@ -460,6 +463,54 @@ const getFoldersByWorkspaceIds = async (workspaceIds) => {
   }, {});
 };
 
+const getNoteAccessForAccount = async (noteId, accountId) => {
+  const note = maybeSingle(
+    await supabase
+      .from('notes')
+      .select('*')
+      .eq('id', noteId)
+      .maybeSingle()
+  );
+
+  if (!note) {
+    return { errorCode: 404, errorMessage: 'Note not found' };
+  }
+
+  const [workspace, membership, collaboration] = await Promise.all([
+    maybeSingle(
+      await supabase
+        .from('workspaces')
+        .select('*')
+        .eq('id', note.workspace_id)
+        .maybeSingle()
+    ),
+    getWorkspaceMembership(note.workspace_id, accountId),
+    maybeSingle(
+      await supabase
+        .from('note_collaborators')
+        .select('*')
+        .eq('note_id', note.id)
+        .eq('account_id', accountId)
+        .not('accepted_at', 'is', null)
+        .is('revoked_at', null)
+        .maybeSingle()
+    ),
+  ]);
+
+  if (!membership && !collaboration) {
+    return { errorCode: 403, errorMessage: 'You do not have access to this note' };
+  }
+
+  return {
+    note,
+    workspace,
+    membership,
+    collaboration,
+    canEdit: Boolean(membership || collaboration?.access_level === 'editor'),
+    canDelete: Boolean(membership || note.created_by_account_id === accountId),
+  };
+};
+
 const requireNoteAccess = async (req, res, noteId) => {
   const session = await requireSession(req, res);
 
@@ -468,53 +519,16 @@ const requireNoteAccess = async (req, res, noteId) => {
   }
 
   try {
-    const note = maybeSingle(
-      await supabase
-        .from('notes')
-        .select('*')
-        .eq('id', noteId)
-        .maybeSingle()
-    );
+    const access = await getNoteAccessForAccount(noteId, session.account_id);
 
-    if (!note) {
-      res.status(404).json({ error: 'Note not found' });
-      return null;
-    }
-
-    const [workspace, membership, collaboration] = await Promise.all([
-      maybeSingle(
-        await supabase
-          .from('workspaces')
-          .select('*')
-          .eq('id', note.workspace_id)
-          .maybeSingle()
-      ),
-      getWorkspaceMembership(note.workspace_id, session.account_id),
-      maybeSingle(
-        await supabase
-          .from('note_collaborators')
-          .select('*')
-          .eq('note_id', note.id)
-          .eq('account_id', session.account_id)
-          .not('accepted_at', 'is', null)
-          .is('revoked_at', null)
-          .maybeSingle()
-      ),
-    ]);
-
-    if (!membership && !collaboration) {
-      res.status(403).json({ error: 'You do not have access to this note' });
+    if (access.errorCode) {
+      res.status(access.errorCode).json({ error: access.errorMessage });
       return null;
     }
 
     return {
       session,
-      note,
-      workspace,
-      membership,
-      collaboration,
-      canEdit: Boolean(membership || collaboration?.access_level === 'editor'),
-      canDelete: Boolean(membership || note.created_by_account_id === session.account_id),
+      ...access,
     };
   } catch (error) {
     sendServerError(res, error);
@@ -632,6 +646,70 @@ const createMagicPreview = (email, loginCode, magicToken, expiresAt) => ({
 });
 
 const createShareUrl = (token) => `${PUBLIC_APP_URL}/?share=${encodeURIComponent(token)}`;
+
+const socketRooms = new Map();
+
+const addSocketToRoom = (noteId, socket) => {
+  const room = socketRooms.get(noteId) || new Set();
+  room.add(socket);
+  socketRooms.set(noteId, room);
+};
+
+const removeSocketFromRoom = (noteId, socket) => {
+  if (!noteId || !socketRooms.has(noteId)) {
+    return;
+  }
+
+  const room = socketRooms.get(noteId);
+  room.delete(socket);
+
+  if (!room.size) {
+    socketRooms.delete(noteId);
+  }
+};
+
+const sendSocketEvent = (socket, payload) => {
+  if (socket.readyState === WebSocket.OPEN) {
+    socket.send(JSON.stringify(payload));
+  }
+};
+
+const broadcastToNoteRoom = (noteId, payload) => {
+  const room = socketRooms.get(noteId);
+
+  if (!room?.size) {
+    return;
+  }
+
+  room.forEach((socket) => sendSocketEvent(socket, payload));
+};
+
+const buildLiveNotePayload = async (note) => {
+  const [accountMap, attachmentMap, workspaceMap] = await Promise.all([
+    getAccountsByIds([note.created_by_account_id, note.last_edited_by_account_id]),
+    getAttachmentMetaByNoteIds(note.workspace_id, [note.id]),
+    getWorkspacesByIds([note.workspace_id]),
+  ]);
+
+  const workspaceRow = workspaceMap[note.workspace_id];
+  const folder = await getFolderById(note.workspace_id, note.folder_id);
+
+  const mappedNote = mapNote(
+    {
+      ...note,
+      workspace_name: workspaceRow?.name || null,
+      workspace_icon: workspaceRow?.icon || '[]',
+      folder_name: folder?.name || null,
+      attachment_count: attachmentMap[note.id]?.length || 0,
+    },
+    accountMap
+  );
+
+  return {
+    ...mappedNote,
+    attachments: attachmentMap[note.id] || [],
+  };
+};
 
 app.post('/api/auth/request-login', async (req, res) => {
   try {
@@ -1214,7 +1292,7 @@ app.post('/api/notes', async (req, res) => {
     );
 
     const accountMap = await getAccountsByIds([note.created_by_account_id, note.last_edited_by_account_id]);
-    res.json({
+    const responsePayload = {
       ...mapNote(
         {
           ...note,
@@ -1228,7 +1306,9 @@ app.post('/api/notes', async (req, res) => {
         accountMap
       ),
       attachments: [],
-    });
+    };
+
+    res.json(responsePayload);
   } catch (error) {
     sendServerError(res, error);
   }
@@ -1275,7 +1355,7 @@ app.put('/api/notes/:id', async (req, res) => {
     const attachmentMap = await getAttachmentMetaByNoteIds(note.workspace_id, [note.id]);
     const workspaceMap = await getWorkspacesByIds([note.workspace_id]);
     const workspaceRow = workspaceMap[note.workspace_id] || access.workspace;
-    res.json({
+    const responsePayload = {
       ...mapNote(
         {
           ...note,
@@ -1295,7 +1375,19 @@ app.put('/api/notes/:id', async (req, res) => {
         accountMap
       ),
       attachments: attachmentMap[note.id] || [],
-    });
+    };
+
+    res.json(responsePayload);
+
+    buildLiveNotePayload(note)
+      .then((liveNote) => {
+        broadcastToNoteRoom(note.id, {
+          type: 'note.updated',
+          senderAccountId: access.session.account_id,
+          note: liveNote,
+        });
+      })
+      .catch(() => {});
   } catch (error) {
     sendServerError(res, error);
   }
@@ -1632,6 +1724,71 @@ app.delete('/api/notes/:id', async (req, res) => {
   }
 });
 
+const wss = new WebSocketServer({ server, path: '/ws/notes' });
+
+wss.on('connection', async (socket, request) => {
+  let joinedNoteId = null;
+
+  try {
+    const requestUrl = new URL(request.url, `http://${request.headers.host || 'localhost'}`);
+    const sessionToken = requestUrl.searchParams.get('sessionToken');
+    const noteId = requestUrl.searchParams.get('noteId');
+
+    if (!sessionToken || !noteId) {
+      socket.close(1008, 'sessionToken and noteId are required');
+      return;
+    }
+
+    const session = await getSession(sessionToken);
+
+    if (!session) {
+      socket.close(1008, 'Session is invalid or expired');
+      return;
+    }
+
+    const access = await getNoteAccessForAccount(noteId, session.account_id);
+
+    if (access.errorCode) {
+      socket.close(1008, access.errorMessage);
+      return;
+    }
+
+    joinedNoteId = noteId;
+    socket.noteId = noteId;
+    socket.accountId = session.account_id;
+    addSocketToRoom(noteId, socket);
+    sendSocketEvent(socket, {
+      type: 'socket.ready',
+      noteId,
+      accountId: session.account_id,
+      canEdit: access.canEdit,
+    });
+  } catch (error) {
+    socket.close(1011, 'Failed to initialize live connection');
+    return;
+  }
+
+  socket.on('close', () => {
+    removeSocketFromRoom(joinedNoteId, socket);
+  });
+
+  socket.on('error', () => {
+    removeSocketFromRoom(joinedNoteId, socket);
+  });
+
+  socket.on('message', (rawMessage) => {
+    try {
+      const payload = JSON.parse(String(rawMessage || '{}'));
+
+      if (payload?.type === 'ping') {
+        sendSocketEvent(socket, { type: 'pong', noteId: joinedNoteId });
+      }
+    } catch {
+      // Ignore malformed client messages.
+    }
+  });
+});
+
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+server.listen(PORT, () => console.log(`Server running on port ${PORT}`));

@@ -79,6 +79,7 @@ const NoteEditor = ({
   const [isCreatingShareLink, setIsCreatingShareLink] = useState(false);
   const titleRef = useRef(null);
   const attachmentInputRef = useRef(null);
+  const suppressCommitRef = useRef(false);
 
   const commit = (patch = {}, editorInstance = editor) => {
     onUpdate({
@@ -115,6 +116,26 @@ const NoteEditor = ({
   useEffect(() => {
     setFolderId(note.folderId || '');
   }, [note.folderId]);
+
+  useEffect(() => {
+    if (!note.liveSyncAt) {
+      return;
+    }
+
+    setTitle(note.title || '');
+    setCover(note.coverImage || '');
+    setStatus(note.status || 'Draft');
+    setTagsInput((note.tags || []).join(', '));
+    setFavorite(Boolean(note.favorite));
+    setArchived(Boolean(note.archived));
+    setFolderId(note.folderId || '');
+
+    if (editor && editor.getHTML() !== (note.content || '')) {
+      suppressCommitRef.current = true;
+      editor.commands.setContent(note.content || '<p></p>', false);
+      suppressCommitRef.current = false;
+    }
+  }, [editor, note.liveSyncAt]);
 
   const handleCoverSelect = (selectedCover) => {
     setCover(selectedCover);
@@ -333,6 +354,9 @@ const NoteEditor = ({
     content: note.content || '',
     immediatelyRender: false,
     onUpdate: ({ editor: instance }) => {
+      if (suppressCommitRef.current) {
+        return;
+      }
       commit({}, instance);
     },
   });

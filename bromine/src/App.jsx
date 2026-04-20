@@ -1,4 +1,4 @@
-import React, { useCallback, useDeferredValue, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
 import Sidebar from './components/Sidebar';
@@ -21,6 +21,7 @@ import {
   fetchSession,
   fetchWorkspaceMembers,
   getAttachmentDownloadUrl,
+  getNoteSocketUrl,
   logoutSession,
   requestLogin,
   saveNoteAttachmentHighlights,
@@ -452,6 +453,7 @@ function App() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [toast, setToast] = useState(null);
   const [isAcceptingShareLink, setIsAcceptingShareLink] = useState(false);
+  const noteSocketRef = useRef(null);
 
   const showToast = useCallback((message, tone = 'error') => {
     setToast({ message, tone, id: Date.now() });
@@ -936,6 +938,60 @@ function App() {
       setStatusMessage(error.message);
     }
   };
+
+  useEffect(() => {
+    if (!sessionToken || !selectedNote?._id) {
+      if (noteSocketRef.current) {
+        noteSocketRef.current.close();
+        noteSocketRef.current = null;
+      }
+      return undefined;
+    }
+
+    const socket = new WebSocket(getNoteSocketUrl(sessionToken, selectedNote._id));
+    noteSocketRef.current = socket;
+
+    socket.onmessage = (event) => {
+      try {
+        const payload = JSON.parse(event.data);
+
+        if (payload?.type !== 'note.updated' || !payload.note?._id) {
+          return;
+        }
+
+        if (payload.senderAccountId === sessionData?.account?.id) {
+          return;
+        }
+
+        setNotes((currentNotes) =>
+          sortNotes(
+            currentNotes.map((note) =>
+              note._id === payload.note._id
+                ? {
+                    ...note,
+                    ...payload.note,
+                    liveSyncAt: Date.now(),
+                  }
+                : note
+            )
+          )
+        );
+      } catch {
+        // Ignore malformed realtime messages.
+      }
+    };
+
+    socket.onerror = () => {
+      setStatusMessage((currentMessage) => currentMessage || 'Live note sync is temporarily unavailable.');
+    };
+
+    return () => {
+      if (noteSocketRef.current === socket) {
+        noteSocketRef.current = null;
+      }
+      socket.close();
+    };
+  }, [selectedNote?._id, sessionData?.account?.id, sessionToken]);
 
   const handleLoadAttachments = useCallback(async (noteId) => {
     if (!sessionToken || !activeWorkspaceForRequests || !noteId) {

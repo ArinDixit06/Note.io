@@ -1,4 +1,5 @@
 const API_BASE = import.meta.env.VITE_API_URL || 'https://note-io-5hpc.onrender.com/api';
+const SOCKET_BASE = import.meta.env.VITE_SOCKET_URL || API_BASE.replace(/\/api\/?$/, '');
 
 const parseResponse = async (response, fallbackMessage) => {
   const payload = await response.json().catch(() => null);
@@ -285,3 +286,12 @@ export const saveNoteAttachmentHighlights = async (sessionToken, workspaceId, no
 
 export const getAttachmentDownloadUrl = (sessionToken, workspaceId, noteId, attachmentId) =>
   `${API_BASE}/notes/${noteId}/attachments/${attachmentId}/download?workspaceId=${encodeURIComponent(workspaceId)}&sessionToken=${encodeURIComponent(sessionToken)}`;
+
+export const getNoteSocketUrl = (sessionToken, noteId) => {
+  const baseUrl = new URL(SOCKET_BASE);
+  baseUrl.protocol = baseUrl.protocol === 'https:' ? 'wss:' : 'ws:';
+  baseUrl.pathname = '/ws/notes';
+  baseUrl.searchParams.set('sessionToken', sessionToken);
+  baseUrl.searchParams.set('noteId', noteId);
+  return baseUrl.toString();
+};
