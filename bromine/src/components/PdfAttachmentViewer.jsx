@@ -174,7 +174,7 @@ const PdfAttachmentViewer = ({ attachment, onSaveHighlights, getAttachmentDownlo
 
       const range = selection.getRangeAt(0);
       const commonNode =
-        range.commonAncestorContainer.nodeType === Node.TEXT_NODE
+        range.commonAncestorContainer.nodeType === 3
           ? range.commonAncestorContainer.parentElement
           : range.commonAncestorContainer;
 

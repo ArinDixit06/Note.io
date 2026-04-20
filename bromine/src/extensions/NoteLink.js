@@ -1,8 +1,8 @@
-import { Node, mergeAttributes } from '@tiptap/core';
+import { Node as TiptapNode, mergeAttributes } from '@tiptap/core';
 import { ReactNodeViewRenderer } from '@tiptap/react';
 import NoteLinkComponent from '../components/NoteLinkComponent';
 
-export default Node.create({
+export default TiptapNode.create({
   name: 'noteLink',
 
   group: 'block',

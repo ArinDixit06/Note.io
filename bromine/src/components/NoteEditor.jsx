@@ -81,13 +81,14 @@ const NoteEditor = ({
   const attachmentInputRef = useRef(null);
   const suppressCommitRef = useRef(false);
 
-  const commit = (patch = {}, editorInstance = editor) => {
+  const commit = (patch = {}, editorInstance) => {
+    const activeEditor = editorInstance || editor;
     onUpdate({
       ...note,
       title,
       coverImage: cover,
       folderId: folderId || null,
-      content: editorInstance?.getHTML() || note.content || '',
+      content: activeEditor?.getHTML() || note.content || '',
       status,
       tags: tagsInput
         .split(',')
