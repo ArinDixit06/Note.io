@@ -58,6 +58,7 @@ const NoteList = ({ notes, currentFolder, onNoteClick, emptyMessage = 'No notes 
                 </span>
               ))}
               {note.archived ? <span className="property-chip property-chip-gray">Archived</span> : null}
+              {note.isShared ? <span className="property-chip property-chip-blue">Shared</span> : null}
               {note.attachmentCount ? (
                 <span className="property-chip property-chip-red">{note.attachmentCount} PDF</span>
               ) : null}

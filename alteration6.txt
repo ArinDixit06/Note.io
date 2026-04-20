@@ -1,0 +1,59 @@
+DO $$
+BEGIN
+  EXECUTE '
+    CREATE TABLE IF NOT EXISTS public.note_collaborators (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      note_id uuid NOT NULL REFERENCES public.notes(id) ON DELETE CASCADE,
+      workspace_id uuid NOT NULL REFERENCES public.workspaces(id) ON DELETE CASCADE,
+      account_id uuid NOT NULL REFERENCES public.accounts(id) ON DELETE CASCADE,
+      access_level text NOT NULL DEFAULT ''editor'',
+      added_by_account_id uuid REFERENCES public.accounts(id) ON DELETE SET NULL,
+      accepted_at timestamptz,
+      revoked_at timestamptz,
+      created_at timestamptz NOT NULL DEFAULT now(),
+      CONSTRAINT note_collaborators_note_account_key UNIQUE (note_id, account_id)
+    )
+  ';
+
+  EXECUTE '
+    CREATE TABLE IF NOT EXISTS public.note_share_links (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      note_id uuid NOT NULL REFERENCES public.notes(id) ON DELETE CASCADE,
+      workspace_id uuid NOT NULL REFERENCES public.workspaces(id) ON DELETE CASCADE,
+      created_by_account_id uuid REFERENCES public.accounts(id) ON DELETE SET NULL,
+      token text NOT NULL UNIQUE,
+      access_level text NOT NULL DEFAULT ''editor'',
+      expires_at timestamptz,
+      revoked_at timestamptz,
+      created_at timestamptz NOT NULL DEFAULT now()
+    )
+  ';
+
+  EXECUTE '
+    CREATE INDEX IF NOT EXISTS note_collaborators_account_id_idx
+    ON public.note_collaborators (account_id, created_at DESC)
+  ';
+
+  EXECUTE '
+    CREATE INDEX IF NOT EXISTS note_collaborators_workspace_id_note_id_idx
+    ON public.note_collaborators (workspace_id, note_id)
+  ';
+
+  EXECUTE '
+    CREATE INDEX IF NOT EXISTS note_share_links_note_id_created_at_idx
+    ON public.note_share_links (note_id, created_at DESC)
+  ';
+
+  EXECUTE '
+    CREATE INDEX IF NOT EXISTS note_share_links_workspace_id_created_at_idx
+    ON public.note_share_links (workspace_id, created_at DESC)
+  ';
+
+  EXECUTE 'ALTER TABLE public.note_collaborators ENABLE ROW LEVEL SECURITY';
+  EXECUTE 'ALTER TABLE public.note_share_links ENABLE ROW LEVEL SECURITY';
+  EXECUTE 'DROP POLICY IF EXISTS "service role manages note collaborators" ON public.note_collaborators';
+  EXECUTE 'DROP POLICY IF EXISTS "service role manages note share links" ON public.note_share_links';
+  EXECUTE 'CREATE POLICY "service role manages note collaborators" ON public.note_collaborators FOR ALL TO service_role USING (true) WITH CHECK (true)';
+  EXECUTE 'CREATE POLICY "service role manages note share links" ON public.note_share_links FOR ALL TO service_role USING (true) WITH CHECK (true)';
+END
+$$;

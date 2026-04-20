@@ -16,6 +16,7 @@ import SlashMenu from './SlashMenu';
 import NoteLink from '../extensions/NoteLink';
 import NotePicker from './NotePicker';
 import PdfAttachmentViewer from './PdfAttachmentViewer';
+import { exportNoteAsPdf } from '../exportNotePdf';
 
 const COVERS = [
   '#f7f1ea',
@@ -59,6 +60,7 @@ const NoteEditor = ({
   onDeleteAttachment,
   onSaveAttachmentHighlights,
   getAttachmentDownloadUrl,
+  onCreateShareLink,
   onBack,
   allNotes,
   onNavigate,
@@ -74,6 +76,7 @@ const NoteEditor = ({
   const [archived, setArchived] = useState(Boolean(note.archived));
   const [folderId, setFolderId] = useState(note.folderId || '');
   const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
+  const [isCreatingShareLink, setIsCreatingShareLink] = useState(false);
   const titleRef = useRef(null);
   const attachmentInputRef = useRef(null);
 
@@ -159,6 +162,44 @@ const NoteEditor = ({
     } finally {
       event.target.value = '';
       setIsUploadingAttachment(false);
+    }
+  };
+
+  const handleExportPdf = async () => {
+    try {
+      await exportNoteAsPdf({
+        title: title || note.title || 'Untitled',
+        content: editor?.getHTML() || note.content || '',
+      });
+    } catch (error) {
+      window.alert(error.message || 'Failed to export PDF.');
+    }
+  };
+
+  const handleCreateShareLink = async () => {
+    if (!onCreateShareLink) {
+      return;
+    }
+
+    setIsCreatingShareLink(true);
+
+    try {
+      const payload = await onCreateShareLink(note._id);
+      const shareUrl = payload?.shareUrl || '';
+
+      if (!shareUrl) {
+        throw new Error('Share link was not returned.');
+      }
+
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(shareUrl);
+      }
+
+      window.alert('Collaborative link copied. Anyone who opens it while logged in will get edit access to this note.');
+    } catch (error) {
+      window.alert(error.message || 'Failed to create collaborative link.');
+    } finally {
+      setIsCreatingShareLink(false);
     }
   };
 
@@ -379,11 +420,18 @@ const NoteEditor = ({
               >
                 {isUploadingAttachment ? 'Uploading PDF...' : 'Attach PDF'}
               </button>
+              <button onClick={handleExportPdf} className="button">
+                Export PDF
+              </button>
+              <button onClick={handleCreateShareLink} className="button" disabled={isCreatingShareLink}>
+                {isCreatingShareLink ? 'Creating link...' : 'Share link'}
+              </button>
               <button
                 onClick={() => {
                   if (window.confirm('Delete page?')) onDelete(note._id);
                 }}
                 className="button button-danger"
+                disabled={!note.canDelete}
               >
                 Delete
               </button>
@@ -448,6 +496,7 @@ const NoteEditor = ({
               <span className="property-name">Folder</span>
               <select
                 value={folderId}
+                disabled={!folders.length}
                 onChange={(event) => {
                   const nextValue = event.target.value;
                   setFolderId(nextValue);
@@ -576,7 +625,11 @@ const NoteEditor = ({
             )}
           </section>
 
-          <div className="comment-zone">Presence is ambient here. Invite collaborators by adding them to the workspace.</div>
+          <div className="comment-zone">
+            {note.isShared
+              ? 'Shared note access is active here. This page was added through a collaborative link and appears in your all pages view.'
+              : 'Presence is ambient here. Invite collaborators by adding them to the workspace.'}
+          </div>
         </div>
       </div>
     </div>

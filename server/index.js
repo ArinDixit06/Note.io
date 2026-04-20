@@ -34,6 +34,7 @@ const WORD_BANK = [
 const ensureArray = (value) => (Array.isArray(value) ? value : []);
 const sanitizeFileName = (value = '') => String(value || '').replace(/[\\/:*?"<>|]+/g, '_').trim();
 const normalizeBase64 = (value = '') => String(value || '').replace(/^data:application\/pdf;base64,/i, '').replace(/\s+/g, '');
+const normalizeAccessLevel = (value = '') => (String(value || '').trim().toLowerCase() === 'viewer' ? 'viewer' : 'editor');
 
 const getInitials = (value = '') =>
   value
@@ -143,6 +144,9 @@ const mapMember = (membership, account) => ({
 const mapNote = (row, accountMap = {}) => ({
   _id: row.id,
   workspaceId: row.workspace_id,
+  workspaceName: row.workspace_name || row.workspace || null,
+  workspaceIcon: row.workspace_icon || '[]',
+  workspace: row.workspace_name || row.workspace || null,
   folderId: row.folder_id,
   folderName: row.folder_name || null,
   localId: row.local_id,
@@ -162,6 +166,11 @@ const mapNote = (row, accountMap = {}) => ({
   ownerRole: accountMap[row.created_by_account_id]?.title || '',
   lastEditedByName: accountMap[row.last_edited_by_account_id]?.full_name || 'Unknown',
   attachmentCount: Number(row.attachment_count || 0),
+  isShared: Boolean(row.is_shared),
+  canEdit: row.can_edit !== false,
+  canDelete: Boolean(row.can_delete),
+  accessLevel: row.access_level || 'editor',
+  sharedByAccountId: row.shared_by_account_id || null,
 });
 
 const mapFolder = (row) => ({
@@ -400,6 +409,118 @@ const requireWorkspaceAccess = async (req, res, workspaceIdOverride = null) => {
   return { session, workspace, membership };
 };
 
+const getWorkspaceMembership = async (workspaceId, accountId) =>
+  maybeSingle(
+    await supabase
+      .from('workspace_members')
+      .select('*')
+      .eq('workspace_id', workspaceId)
+      .eq('account_id', accountId)
+      .maybeSingle()
+  );
+
+const getWorkspacesByIds = async (workspaceIds) => {
+  const uniqueIds = Array.from(new Set(workspaceIds.filter(Boolean)));
+
+  if (!uniqueIds.length) {
+    return {};
+  }
+
+  const workspaces = ensureSuccess(
+    await supabase
+      .from('workspaces')
+      .select('*')
+      .in('id', uniqueIds)
+  );
+
+  return workspaces.reduce((accumulator, workspace) => {
+    accumulator[workspace.id] = workspace;
+    return accumulator;
+  }, {});
+};
+
+const getFoldersByWorkspaceIds = async (workspaceIds) => {
+  const uniqueIds = Array.from(new Set(workspaceIds.filter(Boolean)));
+
+  if (!uniqueIds.length) {
+    return {};
+  }
+
+  const folders = ensureSuccess(
+    await supabase
+      .from('folders')
+      .select('*')
+      .in('workspace_id', uniqueIds)
+  );
+
+  return folders.reduce((accumulator, folder) => {
+    accumulator[folder.id] = folder;
+    return accumulator;
+  }, {});
+};
+
+const requireNoteAccess = async (req, res, noteId) => {
+  const session = await requireSession(req, res);
+
+  if (!session) {
+    return null;
+  }
+
+  try {
+    const note = maybeSingle(
+      await supabase
+        .from('notes')
+        .select('*')
+        .eq('id', noteId)
+        .maybeSingle()
+    );
+
+    if (!note) {
+      res.status(404).json({ error: 'Note not found' });
+      return null;
+    }
+
+    const [workspace, membership, collaboration] = await Promise.all([
+      maybeSingle(
+        await supabase
+          .from('workspaces')
+          .select('*')
+          .eq('id', note.workspace_id)
+          .maybeSingle()
+      ),
+      getWorkspaceMembership(note.workspace_id, session.account_id),
+      maybeSingle(
+        await supabase
+          .from('note_collaborators')
+          .select('*')
+          .eq('note_id', note.id)
+          .eq('account_id', session.account_id)
+          .not('accepted_at', 'is', null)
+          .is('revoked_at', null)
+          .maybeSingle()
+      ),
+    ]);
+
+    if (!membership && !collaboration) {
+      res.status(403).json({ error: 'You do not have access to this note' });
+      return null;
+    }
+
+    return {
+      session,
+      note,
+      workspace,
+      membership,
+      collaboration,
+      canEdit: Boolean(membership || collaboration?.access_level === 'editor'),
+      canDelete: Boolean(membership || note.created_by_account_id === session.account_id),
+    };
+  } catch (error) {
+    sendServerError(res, error);
+    return null;
+  }
+};
+
 const getAccountsByIds = async (ids) => {
   const uniqueIds = Array.from(new Set(ids.filter(Boolean)));
 
@@ -467,14 +588,17 @@ const getAttachmentMetaByNoteIds = async (workspaceId, noteIds) => {
     return {};
   }
 
-  const attachments = ensureSuccess(
-    await supabase
-      .from('note_attachments')
-      .select('id, note_id, workspace_id, file_name, mime_type, file_size_bytes, created_at, highlights_json')
-      .eq('workspace_id', workspaceId)
-      .in('note_id', uniqueNoteIds)
-      .order('created_at', { ascending: true })
-  );
+  let query = supabase
+    .from('note_attachments')
+    .select('id, note_id, workspace_id, file_name, mime_type, file_size_bytes, created_at, highlights_json')
+    .in('note_id', uniqueNoteIds)
+    .order('created_at', { ascending: true });
+
+  if (workspaceId) {
+    query = query.eq('workspace_id', workspaceId);
+  }
+
+  const attachments = ensureSuccess(await query);
 
   return attachments.reduce((accumulator, attachment) => {
     const key = attachment.note_id;
@@ -505,6 +629,8 @@ const createMagicPreview = (email, loginCode, magicToken, expiresAt) => ({
   magicLinkUrl: `${APP_URL || 'http://localhost:5173'}/login/magic?token=${magicToken}`,
   expiresAt,
 });
+
+const createShareUrl = (token) => `${APP_URL || 'http://localhost:5173'}/?share=${encodeURIComponent(token)}`;
 
 app.post('/api/auth/request-login', async (req, res) => {
   try {
@@ -970,26 +1096,51 @@ app.get('/api/notes', async (req, res) => {
       return;
     }
 
-    const folders = await getFoldersByWorkspaceId(access.workspace.id);
-    const folderMap = folders.reduce((accumulator, folder) => {
-      accumulator[folder.id] = folder;
-      return accumulator;
-    }, {});
-
-    const notes = ensureSuccess(
+    const workspaceNotes = ensureSuccess(
       await supabase
         .from('notes')
         .select('*')
         .eq('workspace_id', access.workspace.id)
         .order('updated_at', { ascending: false })
     );
+    const collaboratorRows = ensureSuccess(
+      await supabase
+        .from('note_collaborators')
+        .select('note_id, access_level, added_by_account_id')
+        .eq('account_id', access.session.account_id)
+        .not('accepted_at', 'is', null)
+        .is('revoked_at', null)
+    );
+    const sharedNoteIds = collaboratorRows
+      .map((row) => row.note_id)
+      .filter((noteId) => !workspaceNotes.some((note) => note.id === noteId));
+    const sharedNotes = sharedNoteIds.length
+      ? ensureSuccess(
+          await supabase
+            .from('notes')
+            .select('*')
+            .in('id', sharedNoteIds)
+            .order('updated_at', { ascending: false })
+        )
+      : [];
+    const notes = [...workspaceNotes, ...sharedNotes];
+    const folderMap = await getFoldersByWorkspaceIds(notes.map((note) => note.workspace_id));
+    const workspaceMap = await getWorkspacesByIds(notes.map((note) => note.workspace_id));
+    const collaboratorMap = collaboratorRows.reduce((accumulator, row) => {
+      accumulator[row.note_id] = row;
+      return accumulator;
+    }, {});
 
     const attachmentMap = await getAttachmentMetaByNoteIds(
-      access.workspace.id,
+      null,
       notes.map((note) => note.id)
     );
     const accountMap = await getAccountsByIds(
-      notes.flatMap((note) => [note.created_by_account_id, note.last_edited_by_account_id])
+      notes.flatMap((note) => [
+        note.created_by_account_id,
+        note.last_edited_by_account_id,
+        collaboratorMap[note.id]?.added_by_account_id,
+      ])
     );
 
     res.json(
@@ -997,13 +1148,19 @@ app.get('/api/notes', async (req, res) => {
         ...mapNote(
           {
             ...note,
+            workspace_name: workspaceMap[note.workspace_id]?.name || access.workspace.name,
+            workspace_icon: workspaceMap[note.workspace_id]?.icon || '[]',
             folder_name: note.folder_id ? folderMap[note.folder_id]?.name || null : null,
             attachment_count: attachmentMap[note.id]?.length || 0,
+            is_shared: Boolean(note.workspace_id !== access.workspace.id && collaboratorMap[note.id]),
+            can_edit: Boolean(note.workspace_id === access.workspace.id || collaboratorMap[note.id]?.access_level === 'editor'),
+            can_delete: Boolean(note.workspace_id === access.workspace.id || note.created_by_account_id === access.session.account_id),
+            access_level: collaboratorMap[note.id]?.access_level || 'editor',
+            shared_by_account_id: collaboratorMap[note.id]?.added_by_account_id || null,
           },
           accountMap
         ),
         attachments: attachmentMap[note.id] || [],
-        workspace: access.workspace.name,
       }))
     );
   } catch (error) {
@@ -1060,13 +1217,16 @@ app.post('/api/notes', async (req, res) => {
       ...mapNote(
         {
           ...note,
+          workspace_name: access.workspace.name,
+          workspace_icon: access.workspace.icon,
           folder_name: folder?.name || null,
           attachment_count: 0,
+          can_edit: true,
+          can_delete: true,
         },
         accountMap
       ),
       attachments: [],
-      workspace: access.workspace.name,
     });
   } catch (error) {
     sendServerError(res, error);
@@ -1075,14 +1235,18 @@ app.post('/api/notes', async (req, res) => {
 
 app.put('/api/notes/:id', async (req, res) => {
   try {
-    const access = await requireWorkspaceAccess(req, res);
+    const access = await requireNoteAccess(req, res, req.params.id);
 
     if (!access) {
       return;
     }
 
+    if (!access.canEdit) {
+      return res.status(403).json({ error: 'You do not have edit access to this note' });
+    }
+
     const folderId = req.body?.folderId === undefined ? undefined : req.body.folderId || null;
-    const folder = folderId === undefined ? null : await requireFolderInWorkspace(access.workspace.id, folderId);
+    const folder = folderId === undefined ? null : await requireFolderInWorkspace(access.note.workspace_id, folderId);
     const payload = {
       ...(req.body?.localId ? { local_id: req.body.localId } : {}),
       ...(folderId !== undefined ? { folder_id: folder?.id || null } : {}),
@@ -1102,27 +1266,163 @@ app.put('/api/notes/:id', async (req, res) => {
         .from('notes')
         .update(payload)
         .eq('id', req.params.id)
-        .eq('workspace_id', access.workspace.id)
         .select()
         .single()
     );
 
     const accountMap = await getAccountsByIds([note.created_by_account_id, note.last_edited_by_account_id]);
-    const attachmentMap = await getAttachmentMetaByNoteIds(access.workspace.id, [note.id]);
+    const attachmentMap = await getAttachmentMetaByNoteIds(note.workspace_id, [note.id]);
+    const workspaceMap = await getWorkspacesByIds([note.workspace_id]);
+    const workspaceRow = workspaceMap[note.workspace_id] || access.workspace;
     res.json({
       ...mapNote(
         {
           ...note,
+          workspace_name: workspaceRow?.name || null,
+          workspace_icon: workspaceRow?.icon || '[]',
           folder_name:
             folderId !== undefined
               ? folder?.name || null
-              : (await getFolderById(access.workspace.id, note.folder_id))?.name || null,
+              : (await getFolderById(note.workspace_id, note.folder_id))?.name || null,
           attachment_count: attachmentMap[note.id]?.length || 0,
+          is_shared: Boolean(access.collaboration),
+          can_edit: access.canEdit,
+          can_delete: access.canDelete,
+          access_level: access.collaboration?.access_level || 'editor',
+          shared_by_account_id: access.collaboration?.added_by_account_id || null,
         },
         accountMap
       ),
       attachments: attachmentMap[note.id] || [],
-      workspace: access.workspace.name,
+    });
+  } catch (error) {
+    sendServerError(res, error);
+  }
+});
+
+app.post('/api/notes/:id/share-links', async (req, res) => {
+  try {
+    const access = await requireNoteAccess(req, res, req.params.id);
+
+    if (!access) {
+      return;
+    }
+
+    if (!access.canEdit) {
+      return res.status(403).json({ error: 'You do not have permission to share this note' });
+    }
+
+    const accessLevel = normalizeAccessLevel(req.body?.accessLevel);
+    const token = generateToken(24);
+
+    const shareLink = ensureSuccess(
+      await supabase
+        .from('note_share_links')
+        .insert({
+          note_id: access.note.id,
+          created_by_account_id: access.session.account_id,
+          workspace_id: access.note.workspace_id,
+          token,
+          access_level: accessLevel,
+        })
+        .select()
+        .single()
+    );
+
+    res.json({
+      id: shareLink.id,
+      noteId: access.note.id,
+      accessLevel: shareLink.access_level,
+      shareUrl: createShareUrl(shareLink.token),
+      token: shareLink.token,
+      createdAt: shareLink.created_at,
+    });
+  } catch (error) {
+    sendServerError(res, error);
+  }
+});
+
+app.post('/api/share-links/:token/accept', async (req, res) => {
+  try {
+    const session = await requireSession(req, res);
+
+    if (!session) {
+      return;
+    }
+
+    const shareLink = maybeSingle(
+      await supabase
+        .from('note_share_links')
+        .select('*')
+        .eq('token', req.params.token)
+        .is('revoked_at', null)
+        .maybeSingle()
+    );
+
+    if (!shareLink) {
+      return res.status(404).json({ error: 'Collaborative link not found or no longer active' });
+    }
+
+    const note = maybeSingle(
+      await supabase
+        .from('notes')
+        .select('*')
+        .eq('id', shareLink.note_id)
+        .maybeSingle()
+    );
+
+    if (!note) {
+      return res.status(404).json({ error: 'Note not found' });
+    }
+
+    const membership = await getWorkspaceMembership(note.workspace_id, session.account_id);
+
+    if (!membership) {
+      await ensureSuccess(
+        await supabase
+          .from('note_collaborators')
+          .upsert(
+            {
+              note_id: note.id,
+              workspace_id: note.workspace_id,
+              account_id: session.account_id,
+              access_level: shareLink.access_level,
+              added_by_account_id: shareLink.created_by_account_id,
+              accepted_at: new Date().toISOString(),
+              revoked_at: null,
+            },
+            { onConflict: 'note_id,account_id' }
+          )
+      );
+    }
+
+    const [accountMap, attachmentMap, workspaceMap] = await Promise.all([
+      getAccountsByIds([note.created_by_account_id, note.last_edited_by_account_id, shareLink.created_by_account_id]),
+      getAttachmentMetaByNoteIds(note.workspace_id, [note.id]),
+      getWorkspacesByIds([note.workspace_id]),
+    ]);
+
+    const workspaceRow = workspaceMap[note.workspace_id];
+
+    res.json({
+      noteId: note.id,
+      note: {
+        ...mapNote(
+          {
+            ...note,
+            workspace_name: workspaceRow?.name || null,
+            workspace_icon: workspaceRow?.icon || '[]',
+            attachment_count: attachmentMap[note.id]?.length || 0,
+            is_shared: !membership,
+            can_edit: true,
+            can_delete: Boolean(membership || note.created_by_account_id === session.account_id),
+            access_level: shareLink.access_level,
+            shared_by_account_id: shareLink.created_by_account_id,
+          },
+          accountMap
+        ),
+        attachments: attachmentMap[note.id] || [],
+      },
     });
   } catch (error) {
     sendServerError(res, error);
@@ -1131,30 +1431,16 @@ app.put('/api/notes/:id', async (req, res) => {
 
 app.get('/api/notes/:id/attachments', async (req, res) => {
   try {
-    const access = await requireWorkspaceAccess(req, res);
+    const access = await requireNoteAccess(req, res, req.params.id);
 
     if (!access) {
       return;
-    }
-
-    const note = maybeSingle(
-      await supabase
-        .from('notes')
-        .select('id')
-        .eq('id', req.params.id)
-        .eq('workspace_id', access.workspace.id)
-        .maybeSingle()
-    );
-
-    if (!note) {
-      return res.status(404).json({ error: 'Note not found' });
     }
 
     const attachments = ensureSuccess(
       await supabase
         .from('note_attachments')
         .select('*')
-        .eq('workspace_id', access.workspace.id)
         .eq('note_id', req.params.id)
         .order('created_at', { ascending: true })
     );
@@ -1167,23 +1453,14 @@ app.get('/api/notes/:id/attachments', async (req, res) => {
 
 app.post('/api/notes/:id/attachments', async (req, res) => {
   try {
-    const access = await requireWorkspaceAccess(req, res);
+    const access = await requireNoteAccess(req, res, req.params.id);
 
     if (!access) {
       return;
     }
 
-    const note = maybeSingle(
-      await supabase
-        .from('notes')
-        .select('id')
-        .eq('id', req.params.id)
-        .eq('workspace_id', access.workspace.id)
-        .maybeSingle()
-    );
-
-    if (!note) {
-      return res.status(404).json({ error: 'Note not found' });
+    if (!access.canEdit) {
+      return res.status(403).json({ error: 'You do not have edit access to this note' });
     }
 
     const fileName = sanitizeFileName(req.body?.fileName);
@@ -1207,7 +1484,7 @@ app.post('/api/notes/:id/attachments', async (req, res) => {
       await supabase
         .from('note_attachments')
         .insert({
-          workspace_id: access.workspace.id,
+          workspace_id: access.note.workspace_id,
           note_id: req.params.id,
           file_name: fileName,
           mime_type: mimeType,
@@ -1229,13 +1506,13 @@ app.post('/api/notes/:id/attachments', async (req, res) => {
 
 app.get('/api/notes/:noteId/attachments/:attachmentId/download', async (req, res) => {
   try {
-    const access = await requireWorkspaceAccess(req, res);
+    const access = await requireNoteAccess(req, res, req.params.noteId);
 
     if (!access) {
       return;
     }
 
-    const attachment = await getAttachmentById(access.workspace.id, req.params.noteId, req.params.attachmentId);
+    const attachment = await getAttachmentById(access.note.workspace_id, req.params.noteId, req.params.attachmentId);
 
     if (!attachment) {
       return res.status(404).json({ error: 'Attachment not found' });
@@ -1251,13 +1528,17 @@ app.get('/api/notes/:noteId/attachments/:attachmentId/download', async (req, res
 
 app.put('/api/notes/:noteId/attachments/:attachmentId/highlights', async (req, res) => {
   try {
-    const access = await requireWorkspaceAccess(req, res);
+    const access = await requireNoteAccess(req, res, req.params.noteId);
 
     if (!access) {
       return;
     }
 
-    const attachment = await getAttachmentById(access.workspace.id, req.params.noteId, req.params.attachmentId);
+    if (!access.canEdit) {
+      return res.status(403).json({ error: 'You do not have edit access to this note' });
+    }
+
+    const attachment = await getAttachmentById(access.note.workspace_id, req.params.noteId, req.params.attachmentId);
 
     if (!attachment) {
       return res.status(404).json({ error: 'Attachment not found' });
@@ -1281,7 +1562,7 @@ app.put('/api/notes/:noteId/attachments/:attachmentId/highlights', async (req, r
         })
         .eq('id', req.params.attachmentId)
         .eq('note_id', req.params.noteId)
-        .eq('workspace_id', access.workspace.id)
+        .eq('workspace_id', access.note.workspace_id)
         .select()
         .single()
     );
@@ -1294,13 +1575,17 @@ app.put('/api/notes/:noteId/attachments/:attachmentId/highlights', async (req, r
 
 app.delete('/api/notes/:noteId/attachments/:attachmentId', async (req, res) => {
   try {
-    const access = await requireWorkspaceAccess(req, res);
+    const access = await requireNoteAccess(req, res, req.params.noteId);
 
     if (!access) {
       return;
     }
 
-    const attachment = await getAttachmentById(access.workspace.id, req.params.noteId, req.params.attachmentId);
+    if (!access.canEdit) {
+      return res.status(403).json({ error: 'You do not have edit access to this note' });
+    }
+
+    const attachment = await getAttachmentById(access.note.workspace_id, req.params.noteId, req.params.attachmentId);
 
     if (!attachment) {
       return res.status(404).json({ error: 'Attachment not found' });
@@ -1312,7 +1597,7 @@ app.delete('/api/notes/:noteId/attachments/:attachmentId', async (req, res) => {
         .delete()
         .eq('id', req.params.attachmentId)
         .eq('note_id', req.params.noteId)
-        .eq('workspace_id', access.workspace.id)
+        .eq('workspace_id', access.note.workspace_id)
     );
 
     res.json({ message: 'Attachment deleted' });
@@ -1323,10 +1608,14 @@ app.delete('/api/notes/:noteId/attachments/:attachmentId', async (req, res) => {
 
 app.delete('/api/notes/:id', async (req, res) => {
   try {
-    const access = await requireWorkspaceAccess(req, res);
+    const access = await requireNoteAccess(req, res, req.params.id);
 
     if (!access) {
       return;
+    }
+
+    if (!access.canDelete) {
+      return res.status(403).json({ error: 'You do not have permission to delete this note' });
     }
 
     await ensureSuccess(
@@ -1334,7 +1623,6 @@ app.delete('/api/notes/:id', async (req, res) => {
         .from('notes')
         .delete()
         .eq('id', req.params.id)
-        .eq('workspace_id', access.workspace.id)
     );
 
     res.json({ message: 'Note deleted' });

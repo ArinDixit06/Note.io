@@ -109,6 +109,31 @@ create table if not exists public.note_attachments (
   created_at timestamptz not null default now()
 );
 
+create table if not exists public.note_collaborators (
+  id uuid primary key default gen_random_uuid(),
+  note_id uuid not null references public.notes(id) on delete cascade,
+  workspace_id uuid not null references public.workspaces(id) on delete cascade,
+  account_id uuid not null references public.accounts(id) on delete cascade,
+  access_level text not null default 'editor',
+  added_by_account_id uuid references public.accounts(id) on delete set null,
+  accepted_at timestamptz,
+  revoked_at timestamptz,
+  created_at timestamptz not null default now(),
+  constraint note_collaborators_note_account_key unique (note_id, account_id)
+);
+
+create table if not exists public.note_share_links (
+  id uuid primary key default gen_random_uuid(),
+  note_id uuid not null references public.notes(id) on delete cascade,
+  workspace_id uuid not null references public.workspaces(id) on delete cascade,
+  created_by_account_id uuid references public.accounts(id) on delete set null,
+  token text not null unique,
+  access_level text not null default 'editor',
+  expires_at timestamptz,
+  revoked_at timestamptz,
+  created_at timestamptz not null default now()
+);
+
 alter table public.note_attachments
   add column if not exists source_data_base64 text not null default '';
 
@@ -124,6 +149,10 @@ create index if not exists workspace_members_account_id_idx on public.workspace_
 create index if not exists auth_requests_email_created_at_idx on public.auth_requests (email, created_at desc);
 create index if not exists sessions_account_id_idx on public.sessions (account_id, created_at desc);
 create index if not exists note_attachments_workspace_id_note_id_created_at_idx on public.note_attachments (workspace_id, note_id, created_at desc);
+create index if not exists note_collaborators_account_id_idx on public.note_collaborators (account_id, created_at desc);
+create index if not exists note_collaborators_workspace_id_note_id_idx on public.note_collaborators (workspace_id, note_id);
+create index if not exists note_share_links_note_id_created_at_idx on public.note_share_links (note_id, created_at desc);
+create index if not exists note_share_links_workspace_id_created_at_idx on public.note_share_links (workspace_id, created_at desc);
 
 alter table public.accounts enable row level security;
 alter table public.workspaces enable row level security;
@@ -132,6 +161,8 @@ alter table public.auth_requests enable row level security;
 alter table public.sessions enable row level security;
 alter table public.notes enable row level security;
 alter table public.note_attachments enable row level security;
+alter table public.note_collaborators enable row level security;
+alter table public.note_share_links enable row level security;
 
 drop policy if exists "service role manages accounts" on public.accounts;
 drop policy if exists "service role manages workspaces" on public.workspaces;
@@ -140,6 +171,8 @@ drop policy if exists "service role manages auth requests" on public.auth_reques
 drop policy if exists "service role manages sessions" on public.sessions;
 drop policy if exists "service role manages notes" on public.notes;
 drop policy if exists "service role manages note attachments" on public.note_attachments;
+drop policy if exists "service role manages note collaborators" on public.note_collaborators;
+drop policy if exists "service role manages note share links" on public.note_share_links;
 
 create policy "service role manages accounts" on public.accounts for all to service_role using (true) with check (true);
 create policy "service role manages workspaces" on public.workspaces for all to service_role using (true) with check (true);
@@ -148,3 +181,5 @@ create policy "service role manages auth requests" on public.auth_requests for a
 create policy "service role manages sessions" on public.sessions for all to service_role using (true) with check (true);
 create policy "service role manages notes" on public.notes for all to service_role using (true) with check (true);
 create policy "service role manages note attachments" on public.note_attachments for all to service_role using (true) with check (true);
+create policy "service role manages note collaborators" on public.note_collaborators for all to service_role using (true) with check (true);
+create policy "service role manages note share links" on public.note_share_links for all to service_role using (true) with check (true);

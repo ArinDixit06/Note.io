@@ -6,9 +6,11 @@ import NoteList from './components/NoteList';
 import NoteEditor from './components/NoteEditor';
 import NewNoteButton from './components/NewNoteButton';
 import {
+  acceptNoteShareLink,
   completeOnboarding,
   createFolder,
   createNote,
+  createNoteShareLink,
   createWorkspace,
   deleteNoteAttachment,
   deleteNote,
@@ -449,6 +451,7 @@ function App() {
   const [statusTone, setStatusTone] = useState('neutral');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [toast, setToast] = useState(null);
+  const [isAcceptingShareLink, setIsAcceptingShareLink] = useState(false);
 
   const showToast = useCallback((message, tone = 'error') => {
     setToast({ message, tone, id: Date.now() });
@@ -476,6 +479,7 @@ function App() {
 
     return workspaces.find((workspace) => workspace.id === activeWorkspaceId) || workspaces[0];
   }, [activeWorkspaceId, workspaces]);
+  const activeWorkspaceForRequests = currentWorkspace?.id || workspaces[0]?.id || '';
 
   const selectedNote = useMemo(
     () => notes.find((note) => note._id === selectedNoteId) || null,
@@ -573,6 +577,7 @@ function App() {
 
     const boot = async () => {
       const magicToken = searchParams.get('token');
+      const shareToken = searchParams.get('share');
 
       try {
         if (magicToken) {
@@ -581,7 +586,7 @@ function App() {
           applySessionPayload(payload);
           setStatusTone('success');
           setStatusMessage('Magic link verified.');
-          setSearchParams({});
+          setSearchParams(shareToken ? { share: shareToken } : {});
           return;
         }
 
@@ -613,6 +618,49 @@ function App() {
       active = false;
     };
   }, [searchParams, sessionToken, setSearchParams]);
+
+  useEffect(() => {
+    let active = true;
+
+    const acceptShare = async () => {
+      const shareToken = searchParams.get('share');
+
+      if (!shareToken || !sessionToken || !currentWorkspace || sessionData?.needsOnboarding || isAcceptingShareLink) {
+        return;
+      }
+
+      setIsAcceptingShareLink(true);
+
+      try {
+        const payload = await acceptNoteShareLink(sessionToken, shareToken);
+        const notesPayload = await fetchNotes(sessionToken, currentWorkspace.id);
+
+        if (!active) return;
+
+        setNotes(sortNotes(notesPayload));
+        setSelectedNoteId(payload.note?._id || payload.noteId || null);
+        setStatusTone('success');
+        setStatusMessage('Collaborative note added to your all pages list.');
+        showToast('Collaborative note added to your all pages list.', 'success');
+        setSearchParams({});
+      } catch (error) {
+        if (!active) return;
+        setStatusTone('error');
+        setStatusMessage(error.message);
+        showToast(error.message || 'Failed to accept collaborative link.');
+      } finally {
+        if (active) {
+          setIsAcceptingShareLink(false);
+        }
+      }
+    };
+
+    acceptShare();
+
+    return () => {
+      active = false;
+    };
+  }, [currentWorkspace, isAcceptingShareLink, searchParams, sessionData?.needsOnboarding, sessionToken, setSearchParams, showToast]);
 
   useEffect(() => {
     if (!currentWorkspace) {
@@ -871,7 +919,7 @@ function App() {
   };
 
   const handleUpdateNote = async (updatedNote) => {
-    if (!sessionToken || !currentWorkspace) {
+    if (!sessionToken || !activeWorkspaceForRequests) {
       return;
     }
 
@@ -880,7 +928,7 @@ function App() {
     );
 
     try {
-      const savedNote = await updateNote(sessionToken, currentWorkspace.id, updatedNote._id, updatedNote);
+      const savedNote = await updateNote(sessionToken, activeWorkspaceForRequests, updatedNote._id, updatedNote);
       setNotes((currentNotes) =>
         sortNotes(currentNotes.map((note) => (note._id === savedNote._id ? savedNote : note)))
       );
@@ -890,12 +938,12 @@ function App() {
   };
 
   const handleLoadAttachments = useCallback(async (noteId) => {
-    if (!sessionToken || !currentWorkspace || !noteId) {
+    if (!sessionToken || !activeWorkspaceForRequests || !noteId) {
       return;
     }
 
     try {
-      const attachments = await fetchNoteAttachments(sessionToken, currentWorkspace.id, noteId);
+      const attachments = await fetchNoteAttachments(sessionToken, activeWorkspaceForRequests, noteId);
       mergeNotePatch(noteId, {
         attachments,
         attachmentCount: attachments.length,
@@ -903,10 +951,10 @@ function App() {
     } catch (error) {
       setStatusMessage(error.message);
     }
-  }, [currentWorkspace, mergeNotePatch, sessionToken]);
+  }, [activeWorkspaceForRequests, mergeNotePatch, sessionToken]);
 
   const handleUploadAttachment = async (noteId, file) => {
-    if (!sessionToken || !currentWorkspace || !noteId || !file) {
+    if (!sessionToken || !activeWorkspaceForRequests || !noteId || !file) {
       return;
     }
 
@@ -925,7 +973,7 @@ function App() {
       reader.readAsDataURL(file);
     });
 
-    const attachment = await uploadNoteAttachment(sessionToken, currentWorkspace.id, noteId, {
+    const attachment = await uploadNoteAttachment(sessionToken, activeWorkspaceForRequests, noteId, {
       fileName: file.name,
       mimeType: file.type,
       fileSizeBytes: file.size,
@@ -942,11 +990,11 @@ function App() {
   };
 
   const handleDeleteAttachment = async (noteId, attachmentId) => {
-    if (!sessionToken || !currentWorkspace) {
+    if (!sessionToken || !activeWorkspaceForRequests) {
       return;
     }
 
-    await deleteNoteAttachment(sessionToken, currentWorkspace.id, noteId, attachmentId);
+    await deleteNoteAttachment(sessionToken, activeWorkspaceForRequests, noteId, attachmentId);
     mergeNotePatch(noteId, (note) => {
       const attachments = (note.attachments || []).filter((attachment) => attachment.id !== attachmentId);
       return {
@@ -957,13 +1005,13 @@ function App() {
   };
 
   const handleSaveAttachmentHighlights = async (noteId, attachmentId, payload) => {
-    if (!sessionToken || !currentWorkspace) {
+    if (!sessionToken || !activeWorkspaceForRequests) {
       return;
     }
 
     const attachment = await saveNoteAttachmentHighlights(
       sessionToken,
-      currentWorkspace.id,
+      activeWorkspaceForRequests,
       noteId,
       attachmentId,
       payload
@@ -991,12 +1039,12 @@ function App() {
   }, [handleLoadAttachments, selectedNote]);
 
   const handleDeleteNote = async (noteId) => {
-    if (!sessionToken || !currentWorkspace) {
+    if (!sessionToken || !activeWorkspaceForRequests) {
       return;
     }
 
     try {
-      await deleteNote(sessionToken, currentWorkspace.id, noteId);
+      await deleteNote(sessionToken, activeWorkspaceForRequests, noteId);
       setNotes((currentNotes) => currentNotes.filter((note) => note._id !== noteId));
       if (selectedNoteId === noteId) {
         setSelectedNoteId(null);
@@ -1004,6 +1052,16 @@ function App() {
     } catch (error) {
       setStatusMessage(error.message);
     }
+  };
+
+  const handleCreateShareLink = async (noteId) => {
+    if (!sessionToken || !activeWorkspaceForRequests || !noteId) {
+      throw new Error('A workspace session is required to create a collaborative link.');
+    }
+
+    return createNoteShareLink(sessionToken, activeWorkspaceForRequests, noteId, {
+      accessLevel: 'editor',
+    });
   };
 
   if (isBooting) {
@@ -1117,16 +1175,25 @@ function App() {
             key={selectedNote._id}
             note={selectedNote}
             account={sessionData.account}
-            workspace={currentWorkspace}
-            members={members}
-            folders={folders}
+            workspace={
+              selectedNote.workspaceId === currentWorkspace?.id
+                ? currentWorkspace
+                : {
+                    id: selectedNote.workspaceId,
+                    name: selectedNote.workspaceName || selectedNote.workspace || 'Shared workspace',
+                    icon: selectedNote.workspaceIcon || '[]',
+                  }
+            }
+            members={selectedNote.workspaceId === currentWorkspace?.id ? members : EMPTY_ARRAY}
+            folders={selectedNote.workspaceId === currentWorkspace?.id ? folders : EMPTY_ARRAY}
             onUpdate={handleUpdateNote}
             onDelete={handleDeleteNote}
             onUploadAttachment={handleUploadAttachment}
             onDeleteAttachment={handleDeleteAttachment}
             onSaveAttachmentHighlights={handleSaveAttachmentHighlights}
+            onCreateShareLink={handleCreateShareLink}
             getAttachmentDownloadUrl={(noteId, attachmentId) =>
-              getAttachmentDownloadUrl(sessionToken, currentWorkspace.id, noteId, attachmentId)
+              getAttachmentDownloadUrl(sessionToken, activeWorkspaceForRequests, noteId, attachmentId)
             }
             onBack={() => setSelectedNoteId(null)}
             allNotes={notes}

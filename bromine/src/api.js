@@ -206,6 +206,31 @@ export const updateNote = async (sessionToken, workspaceId, noteId, note) => {
   return parseResponse(response, 'Failed to update note');
 };
 
+export const createNoteShareLink = async (sessionToken, workspaceId, noteId, payload = {}) => {
+  const response = await fetch(`${API_BASE}/notes/${noteId}/share-links`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...withWorkspace(sessionToken, workspaceId),
+    },
+    body: JSON.stringify(payload),
+  });
+
+  return parseResponse(response, 'Failed to create note share link');
+};
+
+export const acceptNoteShareLink = async (sessionToken, token) => {
+  const response = await fetch(`${API_BASE}/share-links/${encodeURIComponent(token)}/accept`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...withSession(sessionToken),
+    },
+  });
+
+  return parseResponse(response, 'Failed to accept note share link');
+};
+
 export const deleteNote = async (sessionToken, workspaceId, noteId) => {
   const response = await fetch(`${API_BASE}/notes/${noteId}`, {
     method: 'DELETE',
