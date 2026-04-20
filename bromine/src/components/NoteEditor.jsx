@@ -83,23 +83,33 @@ const NoteEditor = ({
 
   const commit = (patch = {}, editorInstance) => {
     const activeEditor = editorInstance || editor;
-    onUpdate({
-      ...note,
-      title,
-      coverImage: cover,
-      folderId: folderId || null,
-      content: activeEditor?.getHTML() || note.content || '',
-      status,
-      tags: tagsInput
+    const nextTitle = patch.title ?? title;
+    const nextCover = patch.coverImage ?? cover;
+    const nextFolderId = Object.prototype.hasOwnProperty.call(patch, 'folderId') ? patch.folderId : folderId || null;
+    const nextStatus = patch.status ?? status;
+    const nextTags = patch.tags ??
+      tagsInput
         .split(',')
         .map((tag) => tag.trim())
-        .filter(Boolean),
-      favorite,
-      archived,
+        .filter(Boolean);
+    const nextFavorite = patch.favorite ?? favorite;
+    const nextArchived = patch.archived ?? archived;
+    const nextContent = patch.content ?? activeEditor?.getHTML() ?? note.content ?? '';
+
+    onUpdate({
+      ...note,
+      ...patch,
+      title: nextTitle,
+      coverImage: nextCover,
+      folderId: nextFolderId,
+      content: nextContent,
+      status: nextStatus,
+      tags: nextTags,
+      favorite: nextFavorite,
+      archived: nextArchived,
       ownerName: note.ownerName || account.fullName,
       ownerRole: note.ownerRole || account.title,
       lastViewedAt: new Date().toISOString(),
-      ...patch,
     });
   };
 

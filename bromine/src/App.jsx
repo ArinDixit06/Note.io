@@ -589,6 +589,8 @@ function App() {
                   ? {
                       ...note,
                       ...payload.note,
+                      attachments: payload.note.attachments ?? note.attachments,
+                      attachmentCount: payload.note.attachmentCount ?? note.attachmentCount,
                       liveSyncAt: Date.now(),
                     }
                   : note
