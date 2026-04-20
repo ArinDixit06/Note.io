@@ -454,6 +454,7 @@ function App() {
   const [toast, setToast] = useState(null);
   const [isAcceptingShareLink, setIsAcceptingShareLink] = useState(false);
   const noteSocketRef = useRef(null);
+  const noteSocketNoteIdRef = useRef(null);
 
   const showToast = useCallback((message, tone = 'error') => {
     setToast({ message, tone, id: Date.now() });
@@ -542,6 +543,84 @@ function App() {
       )
     );
   }, []);
+
+  const closeNoteSocket = useCallback(() => {
+    if (noteSocketRef.current) {
+      noteSocketRef.current.close();
+      noteSocketRef.current = null;
+    }
+
+    noteSocketNoteIdRef.current = null;
+  }, []);
+
+  const openNoteSocket = useCallback(
+    (noteId) => {
+      if (!sessionToken || !noteId) {
+        closeNoteSocket();
+        return;
+      }
+
+      if (noteSocketRef.current && noteSocketNoteIdRef.current === noteId) {
+        return;
+      }
+
+      closeNoteSocket();
+
+      const socket = new WebSocket(getNoteSocketUrl(sessionToken, noteId));
+      noteSocketRef.current = socket;
+      noteSocketNoteIdRef.current = noteId;
+
+      socket.onmessage = (event) => {
+        try {
+          const payload = JSON.parse(event.data);
+
+          if (payload?.type !== 'note.updated' || !payload.note?._id) {
+            return;
+          }
+
+          if (payload.senderAccountId === sessionData?.account?.id) {
+            return;
+          }
+
+          setNotes((currentNotes) =>
+            sortNotes(
+              currentNotes.map((note) =>
+                note._id === payload.note._id
+                  ? {
+                      ...note,
+                      ...payload.note,
+                      liveSyncAt: Date.now(),
+                    }
+                  : note
+              )
+            )
+          );
+        } catch {
+          // Ignore malformed realtime messages.
+        }
+      };
+
+      socket.onerror = () => {
+        setStatusMessage((currentMessage) => currentMessage || 'Live note sync is temporarily unavailable.');
+      };
+
+      socket.onclose = () => {
+        if (noteSocketRef.current === socket) {
+          noteSocketRef.current = null;
+          noteSocketNoteIdRef.current = null;
+        }
+      };
+    },
+    [closeNoteSocket, sessionData?.account?.id, sessionToken]
+  );
+
+  const selectNote = useCallback(
+    (noteId) => {
+      openNoteSocket(noteId);
+      setSelectedNoteId(noteId);
+    },
+    [openNoteSocket]
+  );
 
   const applySessionPayload = (payload) => {
     setSessionData(payload);
@@ -912,7 +991,7 @@ function App() {
       });
 
       setNotes((currentNotes) => sortNotes([note, ...currentNotes]));
-      setSelectedNoteId(note._id);
+      selectNote(note._id);
     } catch (error) {
       const msg = error.message || 'Failed to create page. The server may be waking up — try again in a moment.';
       setStatusMessage(msg);
@@ -940,58 +1019,10 @@ function App() {
   };
 
   useEffect(() => {
-    if (!sessionToken || !selectedNote?._id) {
-      if (noteSocketRef.current) {
-        noteSocketRef.current.close();
-        noteSocketRef.current = null;
-      }
-      return undefined;
-    }
+    openNoteSocket(selectedNote?._id || null);
+  }, [openNoteSocket, selectedNote?._id]);
 
-    const socket = new WebSocket(getNoteSocketUrl(sessionToken, selectedNote._id));
-    noteSocketRef.current = socket;
-
-    socket.onmessage = (event) => {
-      try {
-        const payload = JSON.parse(event.data);
-
-        if (payload?.type !== 'note.updated' || !payload.note?._id) {
-          return;
-        }
-
-        if (payload.senderAccountId === sessionData?.account?.id) {
-          return;
-        }
-
-        setNotes((currentNotes) =>
-          sortNotes(
-            currentNotes.map((note) =>
-              note._id === payload.note._id
-                ? {
-                    ...note,
-                    ...payload.note,
-                    liveSyncAt: Date.now(),
-                  }
-                : note
-            )
-          )
-        );
-      } catch {
-        // Ignore malformed realtime messages.
-      }
-    };
-
-    socket.onerror = () => {
-      setStatusMessage((currentMessage) => currentMessage || 'Live note sync is temporarily unavailable.');
-    };
-
-    return () => {
-      if (noteSocketRef.current === socket) {
-        noteSocketRef.current = null;
-      }
-      socket.close();
-    };
-  }, [selectedNote?._id, sessionData?.account?.id, sessionToken]);
+  useEffect(() => () => closeNoteSocket(), [closeNoteSocket]);
 
   const handleLoadAttachments = useCallback(async (noteId) => {
     if (!sessionToken || !activeWorkspaceForRequests || !noteId) {
@@ -1251,12 +1282,12 @@ function App() {
             getAttachmentDownloadUrl={(noteId, attachmentId) =>
               getAttachmentDownloadUrl(sessionToken, activeWorkspaceForRequests, noteId, attachmentId)
             }
-            onBack={() => setSelectedNoteId(null)}
+            onBack={() => selectNote(null)}
             allNotes={notes}
             onNavigate={(noteOrId) => {
               const nextId = typeof noteOrId === 'string' ? noteOrId : noteOrId?._id;
               if (nextId) {
-                setSelectedNoteId(nextId);
+                selectNote(nextId);
               }
             }}
           />
@@ -1318,7 +1349,7 @@ function App() {
                 <NoteList
                   notes={filteredNotes}
                   currentFolder={currentFolder}
-                  onNoteClick={(note) => setSelectedNoteId(note._id)}
+                  onNoteClick={(note) => selectNote(note._id)}
                   emptyMessage={`No pages found in ${VIEW_LABELS[activeView] || 'this view'}.`}
                 />
               )}
@@ -1341,7 +1372,7 @@ function App() {
                     <button
                       key={note._id}
                       className="recent-item"
-                      onClick={() => setSelectedNoteId(note._id)}
+                      onClick={() => selectNote(note._id)}
                     >
                       <span>{note.title || 'Untitled'}</span>
                       <small>
