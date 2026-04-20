@@ -9,6 +9,7 @@ app.use(cors());
 app.use(express.json({ limit: '25mb' }));
 
 const { SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, APP_URL } = process.env;
+const PUBLIC_APP_URL = APP_URL || 'https://note-io-eight.vercel.app';
 
 if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
   throw new Error('Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in server environment');
@@ -626,11 +627,11 @@ const createMagicPreview = (email, loginCode, magicToken, expiresAt) => ({
   email,
   loginCode,
   magicToken,
-  magicLinkUrl: `${APP_URL || 'http://localhost:5173'}/login/magic?token=${magicToken}`,
+  magicLinkUrl: `${PUBLIC_APP_URL}/login/magic?token=${magicToken}`,
   expiresAt,
 });
 
-const createShareUrl = (token) => `${APP_URL || 'http://localhost:5173'}/?share=${encodeURIComponent(token)}`;
+const createShareUrl = (token) => `${PUBLIC_APP_URL}/?share=${encodeURIComponent(token)}`;
 
 app.post('/api/auth/request-login', async (req, res) => {
   try {
